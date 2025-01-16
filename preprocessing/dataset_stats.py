@@ -82,7 +82,9 @@ class DatasetStats:
         ), f"Number of samples in imagesTr ({num_train_samples}) does not match numTraining ({self.dataset.num_training_samples})"
 
         sample: str
-        for sample in tqdm(self.dataset.train_samples, desc=f"Processing stats for {self.dataset.name}"):
+        for sample in tqdm(
+            self.dataset.train_samples, desc=f"Processing stats for {self.dataset.name}"
+        ):
             image: sitk.Image = sitk.ReadImage(self.dataset.folder / sample["image"])
             label: sitk.Image = sitk.ReadImage(self.dataset.folder / sample["label"])
             assert (

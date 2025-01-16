@@ -1,4 +1,5 @@
 from functools import partial
+
 import torch
 
 from training.losses.CrossEntropyLoss import RobustCrossEntropyLoss
@@ -9,7 +10,7 @@ from training.losses.soft_dice_loss import MemoryEfficientSoftDiceLoss
 class LossFactory:
     def __init__(self, loss_name: str):
         self.loss_name = loss_name
-    
+
     def create(self):
         if self.loss_name == "ce":
             return RobustCrossEntropyLoss()

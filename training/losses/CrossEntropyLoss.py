@@ -1,6 +1,6 @@
-import torch
-from torch import nn, Tensor
 import numpy as np
+import torch
+from torch import Tensor, nn
 
 
 class RobustCrossEntropyLoss(nn.CrossEntropyLoss):
@@ -9,6 +9,7 @@ class RobustCrossEntropyLoss(nn.CrossEntropyLoss):
 
     input must be logits, not probabilities!
     """
+
     def forward(self, input: Tensor, target: Tensor) -> Tensor:
         if target.ndim == input.ndim:
             assert target.shape[1] == 1

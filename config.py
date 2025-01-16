@@ -2,7 +2,6 @@ from pathlib import Path
 
 from preprocessing.dataset_class_mapping import DATASET_MAPPING_LABELS
 
-
 DATASETS_INPUT_PATH = Path("/work/grana_maxillo/UNetMerging/data")
 DATASETS_OUTPUT_PATH = Path("/work/grana_maxillo/UNetMerging/preprocessed_data")
 

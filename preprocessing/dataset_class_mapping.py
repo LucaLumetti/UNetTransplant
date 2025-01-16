@@ -1,156 +1,153 @@
 DATASET_ORIGINAL_LABELS = {
-    'AMOS': {
+    "AMOS": {
         "0": "background",
-        "1": "spleen", # 1
-        "2": "right kidney", # 2
-        "3": "left kidney", # 2
-        "4": "gall bladder", # 3
-        "5": "esophagus", # 4
-        "6": "liver", # 5
-        "7": "stomach", # 6
-        "8": "arota", # 7
-        "9": "postcava", # 8
-        "10": "pancreas", # 9
-        "11": "right adrenal gland", # 10
-        "12": "left adrenal gland", # 10
-        "13": "duodenum", # 11
-        "14": "bladder", # 12
-        "15":"prostate/uterus" # 13
-        },
-    'SegThor': {
-        "0": "background",
-        "1": "esophagus", # 14
-        "2": "hearth", # 15
-        "3": "trachea", # 16
-        "4": "aorta" # 17
+        "1": "spleen",  # 1
+        "2": "right kidney",  # 2
+        "3": "left kidney",  # 2
+        "4": "gall bladder",  # 3
+        "5": "esophagus",  # 4
+        "6": "liver",  # 5
+        "7": "stomach",  # 6
+        "8": "arota",  # 7
+        "9": "postcava",  # 8
+        "10": "pancreas",  # 9
+        "11": "right adrenal gland",  # 10
+        "12": "left adrenal gland",  # 10
+        "13": "duodenum",  # 11
+        "14": "bladder",  # 12
+        "15": "prostate/uterus",  # 13
     },
-    'Skull': {
+    "SegThor": {
         "0": "background",
-        "1": "skull" # 18
+        "1": "esophagus",  # 14
+        "2": "hearth",  # 15
+        "3": "trachea",  # 16
+        "4": "aorta",  # 17
     },
-    'TotalSegmentator': {
-        "1": "spleen", # 19
-        "2": "kidney_right", # 20
-        "3": "kidney_left", # 20
-        "4": "gallbladder", # 21
-        "5": "liver", # 22
-        "6": "stomach", # 23
-        "7": "pancreas", # 24
-        "8": "adrenal_gland_right", # 25
-        "9": "adrenal_gland_left", # 25
-        "10": "lung_upper_lobe_left", # 26
-        "11": "lung_lower_lobe_left", # 26
-        "12": "lung_upper_lobe_right", # 26
-        "13": "lung_middle_lobe_right", # 26
-        "14": "lung_lower_lobe_right", # 26
-        "15": "esophagus", # 27
-        "16": "trachea", # 28
-        "17": "thyroid_gland", # 29
-        "18": "small_bowel", # 30
-        "19": "duodenum", # 31
-        "20": "colon", # 32
-        "21": "urinary_bladder", # 33
-        "22": "prostate", # 34
-        "23": "kidney_cyst_left", # 35
-        "24": "kidney_cyst_right", # 35
-        "25": "sacrum", # 36
-        "26": "vertebrae_S1", # 37
-        "27": "vertebrae_L5", # 37
-        "28": "vertebrae_L4", # 37
-        "29": "vertebrae_L3", # 37
-        "30": "vertebrae_L2", # 37
-        "31": "vertebrae_L1", # 37
-        "32": "vertebrae_T12", # 37
-        "33": "vertebrae_T11", # 37
-        "34": "vertebrae_T10", # 37
-        "35": "vertebrae_T9", # 37
-        "36": "vertebrae_T8", # 37
-        "37": "vertebrae_T7", # 37
-        "38": "vertebrae_T6", # 37
-        "39": "vertebrae_T5", # 37
-        "40": "vertebrae_T4", # 37
-        "41": "vertebrae_T3", # 37
-        "42": "vertebrae_T2", # 37
-        "43": "vertebrae_T1", # 37
-        "44": "vertebrae_C7", # 37
-        "45": "vertebrae_C6", # 37
-        "46": "vertebrae_C5", # 37
-        "47": "vertebrae_C4", # 37
-        "48": "vertebrae_C3", # 37
-        "49": "vertebrae_C2", # 37
-        "50": "vertebrae_C1", # 37
-        "51": "heart", # 38
-        "52": "aorta", # 39
-        "53": "pulmonary_vein", # 40
-        "54": "brachiocephalic_trunk", # 41
-        "55": "subclavian_artery_right", # 42
-        "56": "subclavian_artery_left", # 42
-        "57": "common_carotid_artery_right", # 43
-        "58": "common_carotid_artery_left", # 43
-        "59": "brachiocephalic_vein_left", # 44
-        "60": "brachiocephalic_vein_right", # 44
-        "61": "atrial_appendage_left", # 45
-        "62": "superior_vena_cava", # 46
-        "63": "inferior_vena_cava", # 46
-        "64": "portal_vein_and_splenic_vein", # 47
-        "65": "iliac_artery_left", # 48
-        "66": "iliac_artery_right", # 48
-        "67": "iliac_vena_left", # 48
-        "68": "iliac_vena_right", # 48
-        "69": "humerus_left", # 49
-        "70": "humerus_right", # 49
-        "71": "scapula_left", # 50
-        "72": "scapula_right", # 50
-        "73": "clavicula_left", # 51
-        "74": "clavicula_right", # 51
-        "75": "femur_left", # 52
-        "76": "femur_right", # 52
-        "77": "hip_left", # 53
-        "78": "hip_right", # 53
-        "79": "spinal_cord", # 54
-        "80": "gluteus_maximus_left", # 55
-        "81": "gluteus_maximus_right", # 55
-        "82": "gluteus_medius_left", # 55
-        "83": "gluteus_medius_right", # 55
-        "84": "gluteus_minimus_left", # 55
-        "85": "gluteus_minimus_right", # 55
-        "86": "autochthon_left", # 56
-        "87": "autochthon_right", # 56
-        "88": "iliopsoas_left", # 57
-        "89": "iliopsoas_right", # 57
-        "90": "brain", # 58
-        "91": "skull", # 59
-        "92": "rib_left_1", # 60
-        "93": "rib_left_2", # 60
-        "94": "rib_left_3", # 60
-        "95": "rib_left_4", # 60
-        "96": "rib_left_5", # 60
-        "97": "rib_left_6", # 60
-        "98": "rib_left_7", # 60
-        "99": "rib_left_8", # 60
-        "100": "rib_left_9", # 60
-        "101": "rib_left_10", # 60
-        "102": "rib_left_11", # 60
-        "103": "rib_left_12", # 60
-        "104": "rib_right_1", # 60
-        "105": "rib_right_2", # 60
-        "106": "rib_right_3", # 60
-        "107": "rib_right_4", # 60
-        "108": "rib_right_5", # 60
-        "109": "rib_right_6", # 60
-        "110": "rib_right_7", # 60
-        "111": "rib_right_8", # 60
-        "112": "rib_right_9", # 60
-        "113": "rib_right_10", # 60
-        "114": "rib_right_11", # 60
-        "115": "rib_right_12", # 60
-        "116": "sternum", # 61
-        "117": "costal_cartilages", # 62
-    }
+    "Skull": {"0": "background", "1": "skull"},  # 18
+    "TotalSegmentator": {
+        "1": "spleen",  # 19
+        "2": "kidney_right",  # 20
+        "3": "kidney_left",  # 20
+        "4": "gallbladder",  # 21
+        "5": "liver",  # 22
+        "6": "stomach",  # 23
+        "7": "pancreas",  # 24
+        "8": "adrenal_gland_right",  # 25
+        "9": "adrenal_gland_left",  # 25
+        "10": "lung_upper_lobe_left",  # 26
+        "11": "lung_lower_lobe_left",  # 26
+        "12": "lung_upper_lobe_right",  # 26
+        "13": "lung_middle_lobe_right",  # 26
+        "14": "lung_lower_lobe_right",  # 26
+        "15": "esophagus",  # 27
+        "16": "trachea",  # 28
+        "17": "thyroid_gland",  # 29
+        "18": "small_bowel",  # 30
+        "19": "duodenum",  # 31
+        "20": "colon",  # 32
+        "21": "urinary_bladder",  # 33
+        "22": "prostate",  # 34
+        "23": "kidney_cyst_left",  # 35
+        "24": "kidney_cyst_right",  # 35
+        "25": "sacrum",  # 36
+        "26": "vertebrae_S1",  # 37
+        "27": "vertebrae_L5",  # 37
+        "28": "vertebrae_L4",  # 37
+        "29": "vertebrae_L3",  # 37
+        "30": "vertebrae_L2",  # 37
+        "31": "vertebrae_L1",  # 37
+        "32": "vertebrae_T12",  # 37
+        "33": "vertebrae_T11",  # 37
+        "34": "vertebrae_T10",  # 37
+        "35": "vertebrae_T9",  # 37
+        "36": "vertebrae_T8",  # 37
+        "37": "vertebrae_T7",  # 37
+        "38": "vertebrae_T6",  # 37
+        "39": "vertebrae_T5",  # 37
+        "40": "vertebrae_T4",  # 37
+        "41": "vertebrae_T3",  # 37
+        "42": "vertebrae_T2",  # 37
+        "43": "vertebrae_T1",  # 37
+        "44": "vertebrae_C7",  # 37
+        "45": "vertebrae_C6",  # 37
+        "46": "vertebrae_C5",  # 37
+        "47": "vertebrae_C4",  # 37
+        "48": "vertebrae_C3",  # 37
+        "49": "vertebrae_C2",  # 37
+        "50": "vertebrae_C1",  # 37
+        "51": "heart",  # 38
+        "52": "aorta",  # 39
+        "53": "pulmonary_vein",  # 40
+        "54": "brachiocephalic_trunk",  # 41
+        "55": "subclavian_artery_right",  # 42
+        "56": "subclavian_artery_left",  # 42
+        "57": "common_carotid_artery_right",  # 43
+        "58": "common_carotid_artery_left",  # 43
+        "59": "brachiocephalic_vein_left",  # 44
+        "60": "brachiocephalic_vein_right",  # 44
+        "61": "atrial_appendage_left",  # 45
+        "62": "superior_vena_cava",  # 46
+        "63": "inferior_vena_cava",  # 46
+        "64": "portal_vein_and_splenic_vein",  # 47
+        "65": "iliac_artery_left",  # 48
+        "66": "iliac_artery_right",  # 48
+        "67": "iliac_vena_left",  # 48
+        "68": "iliac_vena_right",  # 48
+        "69": "humerus_left",  # 49
+        "70": "humerus_right",  # 49
+        "71": "scapula_left",  # 50
+        "72": "scapula_right",  # 50
+        "73": "clavicula_left",  # 51
+        "74": "clavicula_right",  # 51
+        "75": "femur_left",  # 52
+        "76": "femur_right",  # 52
+        "77": "hip_left",  # 53
+        "78": "hip_right",  # 53
+        "79": "spinal_cord",  # 54
+        "80": "gluteus_maximus_left",  # 55
+        "81": "gluteus_maximus_right",  # 55
+        "82": "gluteus_medius_left",  # 55
+        "83": "gluteus_medius_right",  # 55
+        "84": "gluteus_minimus_left",  # 55
+        "85": "gluteus_minimus_right",  # 55
+        "86": "autochthon_left",  # 56
+        "87": "autochthon_right",  # 56
+        "88": "iliopsoas_left",  # 57
+        "89": "iliopsoas_right",  # 57
+        "90": "brain",  # 58
+        "91": "skull",  # 59
+        "92": "rib_left_1",  # 60
+        "93": "rib_left_2",  # 60
+        "94": "rib_left_3",  # 60
+        "95": "rib_left_4",  # 60
+        "96": "rib_left_5",  # 60
+        "97": "rib_left_6",  # 60
+        "98": "rib_left_7",  # 60
+        "99": "rib_left_8",  # 60
+        "100": "rib_left_9",  # 60
+        "101": "rib_left_10",  # 60
+        "102": "rib_left_11",  # 60
+        "103": "rib_left_12",  # 60
+        "104": "rib_right_1",  # 60
+        "105": "rib_right_2",  # 60
+        "106": "rib_right_3",  # 60
+        "107": "rib_right_4",  # 60
+        "108": "rib_right_5",  # 60
+        "109": "rib_right_6",  # 60
+        "110": "rib_right_7",  # 60
+        "111": "rib_right_8",  # 60
+        "112": "rib_right_9",  # 60
+        "113": "rib_right_10",  # 60
+        "114": "rib_right_11",  # 60
+        "115": "rib_right_12",  # 60
+        "116": "sternum",  # 61
+        "117": "costal_cartilages",  # 62
+    },
 }
 
 DATASET_MAPPING_LABELS = {
-    'AMOS': {
+    "AMOS": {
         1: 1,
         2: 2,
         3: 2,
@@ -165,18 +162,13 @@ DATASET_MAPPING_LABELS = {
         12: 10,
         13: 11,
         14: 12,
-        15: 13
+        15: 13,
     },
-    'SegThor': {
-        1: 14,
-        2: 15,
-        3: 16,
-        4: 17
-    },
-    'Skull':{
+    "SegThor": {1: 14, 2: 15, 3: 16, 4: 17},
+    "Skull": {
         1: 18,
     },
-    'TotalSegmentator': {
+    "TotalSegmentator": {
         1: 19,
         2: 20,
         3: 20,
@@ -293,6 +285,6 @@ DATASET_MAPPING_LABELS = {
         114: 60,
         115: 60,
         116: 61,
-        117: 62
-    }
+        117: 62,
+    },
 }

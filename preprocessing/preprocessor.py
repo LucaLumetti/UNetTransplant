@@ -8,8 +8,8 @@ from tqdm import tqdm
 
 from config import MODEL_OUT_CHANNELS
 from preprocessing.dataset_class_mapping import DATASET_MAPPING_LABELS
-from preprocessing.raw_dataset import RawDataset
 from preprocessing.dataset_stats import DatasetStats
+from preprocessing.raw_dataset import RawDataset
 
 
 class Preprocessor:
@@ -23,13 +23,13 @@ class Preprocessor:
         label: npt.NDArray,
         patch_size: Union[int, Tuple[int, int, int]] = (96, 96, 96),
         patch_overlap: Union[float, Tuple[float, float, float]] = (
-            0.,
-            0.,
-            0.,
+            0.0,
+            0.0,
+            0.0,
         ),  # 50% overlap
     ):
         assert image.shape[-3:] == label.shape[-3:]
-        if not all([image.shape[i+1] >= patch_size[i] for i in range(3)]):
+        if not all([image.shape[i + 1] >= patch_size[i] for i in range(3)]):
             raise ValueError("Patch size is larger than image size.")
 
         patches = []
@@ -120,15 +120,23 @@ class Preprocessor:
         output_folder: Path,
         keep_empty_prob: float = 0.05,
     ):
-        for sample in tqdm(self.dataset.train_samples, desc=f"Preprocessing {self.dataset.name}"):
+        for sample in tqdm(
+            self.dataset.train_samples, desc=f"Preprocessing {self.dataset.name}"
+        ):
             image = sample["image"]
             label = sample["label"]
 
             try:
-                image: sitk.Image = sitk.ReadImage(self.dataset.folder / sample["image"])
-                label: sitk.Image = sitk.ReadImage(self.dataset.folder / sample["label"])
+                image: sitk.Image = sitk.ReadImage(
+                    self.dataset.folder / sample["image"]
+                )
+                label: sitk.Image = sitk.ReadImage(
+                    self.dataset.folder / sample["label"]
+                )
             except RuntimeError:
-                print(f"Could not read image {sample['image']} or label {sample['label']}")
+                print(
+                    f"Could not read image {sample['image']} or label {sample['label']}"
+                )
                 continue
 
             image_array, label_array = self.preprocess(image, label)
@@ -140,7 +148,7 @@ class Preprocessor:
             label_folder = output_folder / dataset_name / image_name / "labels"
 
             label_array = self.make_one_hot(label_array)
-            
+
             if image_array.ndim == 3:
                 image_array = image_array[np.newaxis, ...]
 
@@ -165,9 +173,11 @@ class Preprocessor:
                 np.save(label_folder / f"{image_name}_{i}.npy", label_patch)
 
     def make_one_hot(self, label_array: npt.NDArray):
-        one_hot = np.zeros((MODEL_OUT_CHANNELS, *label_array.shape), dtype=label_array.dtype)
+        one_hot = np.zeros(
+            (MODEL_OUT_CHANNELS, *label_array.shape), dtype=label_array.dtype
+        )
         mapping = DATASET_MAPPING_LABELS[self.dataset.name]
-        for (original, mapped) in mapping.items():
-            one_hot[mapped-1] = label_array == original
+        for original, mapped in mapping.items():
+            one_hot[mapped - 1] = label_array == original
 
         return one_hot
