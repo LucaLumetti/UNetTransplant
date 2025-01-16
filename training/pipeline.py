@@ -58,6 +58,7 @@ class Pipeline:
                 scaler.update()
 
                 losses.append(loss.item())
+                tqdm.write(f"Loss: {loss.item()}")
 
             self.scheduler.step()
 

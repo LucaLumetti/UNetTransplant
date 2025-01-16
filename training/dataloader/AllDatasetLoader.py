@@ -2,12 +2,14 @@ from typing import List
 import torch
 
 from datasets.preprocessed_dataset import PreprocessedDataset
+from training.dataloader.augmenter import Augmenter
 
 class CombinedDataset(torch.utils.data.Dataset):
     def __init__(self,):
         print(f"Fix the combined dataset, you need to make a weighted sampling")
-        dataset_names = ['AMOS', 'SegThor']
+        dataset_names = ['AMOS', 'SegThor', 'TotalSegmentator', 'Skull']
         self.combined_dataset = []
+        self.augmenter = Augmenter()
         for dataset_name in dataset_names:
             dataset = PreprocessedDataset(dataset_name=dataset_name)
             self.combined_dataset.append(dataset)
