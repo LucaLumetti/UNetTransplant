@@ -5,6 +5,8 @@ data/
 venv_cuda12.1/
 debug/
 old/
+*.pth
+*.npy
 
 
 # Byte-compiled / optimized / DLL files
