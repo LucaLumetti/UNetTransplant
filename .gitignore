@@ -1,8 +1,12 @@
 # data
 preprocessed_data/
-data
-.vscode
-venv_cuda12.1
+data/
+.vscode/
+venv_cuda12.1/
+debug/
+old/
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
