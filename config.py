@@ -5,8 +5,8 @@ from pathlib import Path
 @dataclass
 class DataConfig:
     NAME = "ComposedDataset"
-    BATCH_SIZE = 4
-    NUM_WORKERS = 2
+    BATCH_SIZE = 8
+    NUM_WORKERS = 8
     DATA_PATH = Path("/work/grana_maxillo/UNetMergingData/preprocessed_data")
 
 
@@ -33,4 +33,4 @@ class LossConfig:
 
 @dataclass
 class TrainConfig:
-    EPOCHS = 20
+    EPOCHS = 200

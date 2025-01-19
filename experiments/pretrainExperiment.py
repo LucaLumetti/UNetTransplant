@@ -81,10 +81,10 @@ class PretrainExperiment(BaseExperiment):
 
             # torch.cuda.empty_cache()
 
-            # if epoch % 10 == 0:
-            #     self.test(phase='Val')
-            #     self.model.train()
-            #     torch.save(self.model.state_dict(), os.path.join(self.results_path, f'epoch_{epoch}.pth'))
+            if epoch % 10 == 0:
+                # self.test(phase='Val')
+                # self.model.train()
+                self.save(epoch)
 
             # torch.cuda.empty_cache()
 

@@ -16,7 +16,7 @@ def main():
 
     wandb.init(
         project="UNetMErging",
-        name="test",
+        name="test_nico",
         entity="maxillo",
     )
 
