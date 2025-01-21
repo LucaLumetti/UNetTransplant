@@ -2,7 +2,7 @@ import json
 import os
 
 dataset_name = "TotalSegmentator"
-base_folder = f"./data/{dataset_name}"
+base_folder = f"/work/grana_maxillo/UNetMergingData/raw_data/{dataset_name}"
 # Define the paths to the folders
 images_folder = f"{base_folder}/imagesTr"
 labels_folder = f"{base_folder}/labelsTr"

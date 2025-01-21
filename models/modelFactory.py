@@ -1,8 +1,11 @@
+from typing import List, Optional
+
 import torch
 from torch import nn
 
+import configs
 import models
-from config import ModelConfig
+from models.taskheads import Task
 
 
 def init_weight_he(model: nn.Module, neg_slope=1e-2):
@@ -20,25 +23,40 @@ def init_weight_he(model: nn.Module, neg_slope=1e-2):
 
 class ModelFactory:
     @staticmethod
-    def create() -> torch.nn.Module:
-        name = ModelConfig.NAME
+    def create(model_config, tasks: Optional[List[Task]] = None) -> torch.nn.Module:
+        name = model_config.NAME
         if name in models.__dict__:
             model_class = getattr(models, name)
         else:
             raise Exception(f"Model {name} not found")
 
         try:
-            model = model_class(ModelConfig.IN_CHANNELS, ModelConfig.OUT_CHANNELS)
+            if tasks is not None:
+                model = model_class(model_config.IN_CHANNELS, tasks)
+            else:
+                model = model_class(
+                    model_config.IN_CHANNELS,
+                )
         except TypeError as e:
             raise TypeError(f"Could not instantiate {model_class}: {e}")
 
         cuda_capability = torch.cuda.get_device_capability(0)
-        if cuda_capability[0] >= 7 and ModelConfig.COMPILE:
-            torch.backends.cudnn.enabled = True
-            torch.backends.cudnn.deterministic = True
-            torch.backends.cudnn.benchmark = True
+        if cuda_capability[0] >= 7 and model_config.COMPILE:
             model = torch.compile(model=model)
 
         init_weight_he(model)
 
         return model
+
+    def create_from_checkpoint(checkpoint_path: str) -> torch.nn.Module:
+        backbone = ModelFactory.create(configs.BackboneConfig)
+        checkpoint = torch.load(checkpoint_path)
+        backbone.load_state_dict(checkpoint["backbone_state_dict"])
+        heads = []
+        head = nn.Conv3d(32, 4, kernel_size=1)
+        head_state_dict = checkpoint["heads_state_dict"]
+        head_state_dict = {
+            k.replace("task_heads.7.", ""): v for k, v in head_state_dict.items()
+        }
+        head.load_state_dict(head_state_dict)
+        return backbone, head

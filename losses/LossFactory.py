@@ -1,13 +1,13 @@
 from torch.nn import Module
 
+import configs
 import losses
-from config import LossConfig
 
 
 class LossFactory:
     @staticmethod
     def create() -> Module:
-        name = LossConfig.NAME
+        name = configs.LossConfig.NAME
         if name in losses.__dict__:
             model_class = getattr(losses, name)
         else:

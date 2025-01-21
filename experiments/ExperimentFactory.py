@@ -1,11 +1,12 @@
 import torch
 
 import experiments
+from experiments.baseExperiment import BaseExperiment
 
 
 class ExperimentFactory:
     @staticmethod
-    def create(name: str) -> torch.nn.Module:
+    def create(name: str) -> BaseExperiment:
         if name in experiments.__dict__:
             experiment_class = getattr(experiments, name)
         else:

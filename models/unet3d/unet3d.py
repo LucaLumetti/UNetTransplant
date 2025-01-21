@@ -1,3 +1,5 @@
+from typing import Optional
+
 from torch import nn
 
 from models.unet3d.buildingblocks import (
@@ -63,8 +65,12 @@ class AbstractUNet(nn.Module):
         upsample="default",
         dropout_prob=0.1,
         is3d=True,
+        final_conv=True,
     ):
         super(AbstractUNet, self).__init__()
+
+        if final_conv is False:
+            print("Final conv is False, UNet is in backbone mode!!!")
 
         if isinstance(f_maps, int):
             f_maps = number_of_features_per_level(f_maps, num_levels=num_levels)
@@ -104,11 +110,14 @@ class AbstractUNet(nn.Module):
             is3d,
         )
 
-        # in the last layer a 1×1 convolution reduces the number of output channels to the number of labels
-        if is3d:
+        assert not (
+            final_conv is False and final_activation is not None
+        ), "if is3d is False, final_activation must be None"
+
+        if final_conv:
             self.final_conv = nn.Conv3d(f_maps[0], out_channels, 1)
         else:
-            self.final_conv = nn.Conv2d(f_maps[0], out_channels, 1)
+            self.final_conv = None
 
         self.final_activation = final_activation
 
@@ -150,7 +159,8 @@ class AbstractUNet(nn.Module):
             # of the previous decoder
             x = decoder(encoder_features, x)
 
-        x = self.final_conv(x)
+        if self.final_conv is not None:
+            x = self.final_conv(x)
 
         if self.final_activation is not None:
             # compute final activation
@@ -173,7 +183,7 @@ class UNet3D(AbstractUNet):
     def __init__(
         self,
         in_channels,
-        out_channels,
+        out_channels: Optional[int] = None,
         f_maps=32,
         layer_order="gcr",
         num_groups=8,
@@ -199,6 +209,7 @@ class UNet3D(AbstractUNet):
             upsample=upsample,
             dropout_prob=dropout_prob,
             is3d=True,
+            final_conv=False,
         )
 
 
@@ -239,4 +250,5 @@ class ResidualUNet3D(AbstractUNet):
             upsample=upsample,
             dropout_prob=dropout_prob,
             is3d=True,
+            final_conv=True,
         )

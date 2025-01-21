@@ -17,30 +17,19 @@ class DiceLoss(nn.Module):
         self.nonlinearity = activation
         self.smooth = smooth
 
-    def forward(self, x, y, mask: Optional[torch.Tensor] = None):
+    def forward(self, x, y, mask):
+        mask = mask.flatten()
         if self.nonlinearity is not None:
             x = self.nonlinearity(x)
 
-            if x.shape == y.shape:
-                # if this is the case then gt is probably already a one hot encoding
-                y_onehot = y
-            else:
-                y_onehot = torch.zeros(x.shape, device=x.device, dtype=torch.bool)
-                y_onehot.scatter_(1, y.long(), 1)
-
-        # TODO: i can create just a vector here!
-        if mask is None:
-            mask = y != -1
+        y = y[:, mask, :, :, :]
+        x = x[:, mask, :, :, :]
 
         # make everything shape (b, c)
         axes = tuple(range(2, x.ndim))
+        sum_gt = y.sum(axes)
 
-        # with torch.no_grad():
-        y_onehot = y * mask
-        x = x * mask
-        sum_gt = y_onehot.sum(axes)
-
-        intersect = (x * y_onehot).sum(axes)
+        intersect = (x * y).sum(axes)
         sum_pred = x.sum(axes)
 
         if self.batch_dice:
@@ -56,5 +45,4 @@ class DiceLoss(nn.Module):
         dc = (2 * intersect + self.smooth) / (sum_gt + sum_pred + self.smooth)
 
         dc = 1 - dc
-        dc_ = dc.sum() / (dc > 0).sum()
-        return dc_
+        return dc.mean()

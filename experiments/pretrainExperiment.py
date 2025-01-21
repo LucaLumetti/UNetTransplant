@@ -4,11 +4,13 @@ import torch
 import wandb
 from tqdm import tqdm
 
-from config import TrainConfig
+import configs
 from datasets import DatasetFactory
 from experiments import BaseExperiment
 from losses import LossFactory
 from models import ModelFactory
+from models.taskheads import TaskHeads
+from models.unet3d.unet3d import UNet3D
 from optimizers import OptimizerFactory
 
 # TODO: support DDP
@@ -27,13 +29,20 @@ class PretrainExperiment(BaseExperiment):
         # TODO: is there the correct place?
         self.train_loader = self.train_dataset.get_dataloader()
 
-        self.model = ModelFactory.create()
-        self.model = self.model.cuda()
+        self.backbone: UNet3D = ModelFactory.create(configs.BackboneConfig)
+        self.backbone = self.backbone.cuda()
 
-        wandb.watch(self.model, log="all", log_freq=100)
+        self.heads: TaskHeads = ModelFactory.create(
+            configs.HeadsConfig, tasks=self.train_dataset.get_tasks()
+        )
+        self.heads = self.heads.cuda()
 
-        self.optimizer = OptimizerFactory.create(self.model)
-        self.loss = LossFactory.create()
+        # wandb.watch(self.model, log="all", log_freq=100)
+
+        self.all_parameters = list(self.backbone.parameters()) + list(
+            self.heads.parameters()
+        )
+        self.optimizer = OptimizerFactory.create(self.all_parameters)
         # self.metrics = Metrics(self.config.model['n_classes'])
 
     def save(self, epoch):
@@ -42,7 +51,8 @@ class PretrainExperiment(BaseExperiment):
         torch.save(
             {
                 "epoch": epoch,
-                "model_state_dict": self.model.state_dict(),
+                "backbone_state_dict": self.backbone.state_dict(),
+                "heads_state_dict": self.heads.state_dict(),
                 "optimizer_state_dict": self.optimizer.state_dict(),
                 # "scheduler_state_dict": self.scheduler.state_dict(),
             },
@@ -51,8 +61,10 @@ class PretrainExperiment(BaseExperiment):
         print(f"Checkpoint saved at {checkpoint_filename}")
 
     def train(self):
-        self.model.train()
-        for epoch in range(TrainConfig.EPOCHS):
+        self.backbone.train()
+        self.heads.train()
+
+        for epoch in range(configs.TrainConfig.EPOCHS):
             for i, sample in tqdm(
                 enumerate(self.train_loader),
                 desc=f"Epoch {epoch}",
@@ -60,15 +72,15 @@ class PretrainExperiment(BaseExperiment):
             ):
                 image = sample[0].to(device)
                 label = sample[1].to(device)
+                dataset_indices = sample[2].to(device)
 
-                output = self.model(image)
-
-                loss: torch.Tensor = self.loss(output, label)
+                backbone_pred = self.backbone(image)
+                heads_pred, loss = self.heads(backbone_pred, label, dataset_indices)
 
                 self.optimizer.zero_grad()
                 loss.backward()
 
-                torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
+                torch.nn.utils.clip_grad_norm_(self.all_parameters, 1.0)
                 self.optimizer.step()
 
                 tqdm.write(f"Loss: {loss.item()}")

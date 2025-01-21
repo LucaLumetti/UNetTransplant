@@ -1,7 +1,7 @@
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-from config import DataConfig
+import configs
 
 
 class LoadableDataset(Dataset):
@@ -11,8 +11,8 @@ class LoadableDataset(Dataset):
         sampler = None  # TODO add support for DDP
         dataloader = DataLoader(
             self,
-            batch_size=DataConfig.BATCH_SIZE,
-            num_workers=DataConfig.NUM_WORKERS,
+            batch_size=configs.DataConfig.BATCH_SIZE,
+            num_workers=configs.DataConfig.NUM_WORKERS,
             pin_memory=False,
             shuffle=sampler is None,
             sampler=sampler,

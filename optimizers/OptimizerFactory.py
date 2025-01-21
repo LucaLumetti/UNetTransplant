@@ -3,13 +3,13 @@ import torch.nn as nn
 import torch.optim.optimizer
 from torch.optim.optimizer import Optimizer
 
-from config import OptimizerConfig
+import configs
 
 
 class OptimizerFactory:
     @staticmethod
-    def create(model: nn.Module) -> Optimizer:
-        name = OptimizerConfig.NAME
+    def create(parameters) -> Optimizer:
+        name = configs.OptimizerConfig.NAME
         if name in torch.optim.__dict__:
             optimizer_class = getattr(torch.optim, name)
         else:
@@ -17,10 +17,10 @@ class OptimizerFactory:
 
         try:
             optim = optimizer_class(
-                model.parameters(),
-                lr=OptimizerConfig.LEARNING_RATE,
-                momentum=OptimizerConfig.MOMENTUM,
-                weight_decay=OptimizerConfig.WEIGHT_DECAY,
+                parameters,
+                lr=configs.OptimizerConfig.LEARNING_RATE,
+                momentum=configs.OptimizerConfig.MOMENTUM,
+                weight_decay=configs.OptimizerConfig.WEIGHT_DECAY,
             )
         except TypeError as e:
             raise TypeError(f"Could not instantiate {optimizer_class}: {e}")
