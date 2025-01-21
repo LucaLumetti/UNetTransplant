@@ -159,7 +159,9 @@ class Preprocessor:
         # print(f"Processing {image_name}")
         try:
             image: sitk.Image = sitk.ReadImage(self.dataset.folder / sample["image"])
-            label: sitk.Image = sitk.ReadImage(self.dataset.folder / sample["label"])
+            label: sitk.Image = sitk.ReadImage(
+                self.dataset.folder / sample["label"].replace("_0000", "")
+            )
         except RuntimeError as e:
             print(
                 f"Could not read image {sample['image']} or label {sample['label']}\n{e}"
@@ -170,6 +172,9 @@ class Preprocessor:
 
         if self.dataset.name == "ZhimingCui":
             label_array = (label_array > 0).astype(label_array.dtype)
+
+        if self.dataset.name == "ToothFairy2":
+            label_array = self.convert_toothfairy2_labels(label_array)
 
         image_name = sample["image"].split("/")[-1].split(".")[0]
         dataset_name = self.dataset.name
@@ -243,3 +248,9 @@ class Preprocessor:
                     constant_values=0,
                 )
         return image_array, label_array
+
+    def convert_toothfairy2_labels(self, label_array: npt.NDArray):
+        label_array[label_array >= 21] -= 2
+        label_array[label_array >= 31] -= 2
+        label_array[label_array >= 41] -= 2
+        return label_array

@@ -15,7 +15,7 @@ PRETRAIN_CHECKPOINTS = "/work/grana_maxillo/UNetMerging/checkpoints/checkpoint_1
 
 [OptimizerConfig]
 NAME = "SGD"
-LEARNING_RATE = 0.1
+LR = 0.1
 MOMENTUM = 0.9
 WEIGHT_DECAY = 0.0001
 

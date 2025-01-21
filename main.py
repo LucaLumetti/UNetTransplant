@@ -1,4 +1,5 @@
 import argparse
+from pathlib import Path
 
 import wandb
 
@@ -16,19 +17,20 @@ def main():
     arg_parser.add_argument(
         "--config",
         help="Path to the configuration file.",
-        default="configs/default_config.toml",
+        default="configs/finetune_tf_pharynx.toml",
     )
     args = arg_parser.parse_args()
-    configs.initialize_config(args.config)
+
+    config_path = find_config_path(args.config)
+    configs.initialize_config(config_path)
+
     wandb.init(
         project="UNetMerging",
         name=f"{args.experiment}_{wandb.util.generate_id()}",
         entity="maxillo",
-        mode="disabled",
+        mode="online",
         config=configs.generate_config_json(),
     )
-
-    print(configs.DataConfig.NAME)
 
     experiment = ExperimentFactory.create(name=args.experiment)
     if configs.BackboneConfig.PRETRAIN_CHECKPOINTS is not None:
@@ -38,6 +40,15 @@ def main():
 
     experiment.train()
     experiment.evaluate()
+
+
+def find_config_path(config: str) -> Path:
+    config_path = Path(config)
+    if not config_path.exists():
+        config_path = Path("configs") / config_path
+    if not config_path.exists():
+        return find_config_path(f"{config}.toml")
+    return config_path
 
 
 if __name__ == "__main__":

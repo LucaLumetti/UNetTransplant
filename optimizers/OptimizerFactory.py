@@ -18,7 +18,6 @@ class OptimizerFactory:
         try:
             optim = optimizer_class(
                 parameters,
-                lr=configs.OptimizerConfig.LEARNING_RATE,
                 momentum=configs.OptimizerConfig.MOMENTUM,
                 weight_decay=configs.OptimizerConfig.WEIGHT_DECAY,
             )

@@ -7,6 +7,7 @@ debug/
 old/
 *.pth
 *.npy
+domande_angel.txt
 
 
 # Byte-compiled / optimized / DLL files

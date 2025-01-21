@@ -52,4 +52,6 @@ class Metrics:
             "f1": self.compute_f1(tp, fp, tn, fn),
             "accuracy": self.compute_accuracy(tp, fp, tn, fn),
         }
+        for key in metrics:
+            metrics[key] = np.nan_to_num(metrics[key])
         return metrics

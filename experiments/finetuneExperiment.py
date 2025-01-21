@@ -42,8 +42,18 @@ class FinetuneExperiment(BaseExperiment):
         # wandb.watch(self.model, log="all", log_freq=100)
 
         self.parameters_to_optimize = [
-            {"params": self.backbone.parameters(), "lr": 0.001},
-            {"params": self.heads.parameters(), "lr": 0.1},
+            {
+                "params": self.backbone.parameters(),
+                "lr": configs.OptimizerConfig.LR / 100,
+                "momentum": configs.OptimizerConfig.MOMENTUM,
+                "weight_decay": configs.OptimizerConfig.WEIGHT_DECAY,
+            },
+            {
+                "params": self.heads.parameters(),
+                "lr": configs.OptimizerConfig.LR,
+                "momentum": configs.OptimizerConfig.MOMENTUM,
+                "weight_decay": configs.OptimizerConfig.WEIGHT_DECAY,
+            },
         ]
         self.optimizer = OptimizerFactory.create(self.parameters_to_optimize)
         # self.metrics = Metrics(self.config.model['n_classes'])
@@ -84,8 +94,9 @@ class FinetuneExperiment(BaseExperiment):
             # torch.cuda.empty_cache()
 
             if epoch % 10 == 0:
-                # self.test(phase='Val')
-                # self.model.train()
+                self.evaluate()
+                self.backbone.train()
+                self.heads.train()
                 self.save(epoch)
 
             # torch.cuda.empty_cache()
@@ -123,3 +134,10 @@ class FinetuneExperiment(BaseExperiment):
             for key, value in metrics.items():
                 dict_to_log[f"Val/{key}"] = sum(value) / len(value)
             wandb.log(dict_to_log)
+
+    def predict(self, image):
+        self.model.eval()
+        with torch.no_grad():
+            image = image.to(device)
+            pred = self.model(image)
+        return pred

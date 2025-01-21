@@ -60,7 +60,7 @@ class _KidneyHeadConfig:
 @dataclass
 class _OptimizerConfig:
     NAME: str = "SGD"
-    LEARNING_RATE: float = 0.1
+    LR: float = 0.1
     MOMENTUM: float = 0.9
     WEIGHT_DECAY: float = 0.0001
 

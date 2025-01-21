@@ -13,7 +13,8 @@ from metrics.Metrics import Metrics
 
 class BaseExperiment:
     def __init__(self):
-        self.model: torch.nn.Module
+        self.backbone: torch.nn.Module
+        self.heads: torch.nn.Module
         self.optimizer: torch.optim.Optimizer
         self.scheduler: torch.optim.lr_scheduler._LRScheduler
         self.metrics: Metrics = Metrics()
@@ -22,6 +23,9 @@ class BaseExperiment:
         raise NotImplementedError
 
     def evaluate(self):
+        raise NotImplementedError
+
+    def predict(self):
         raise NotImplementedError
 
     def save(self, epoch):

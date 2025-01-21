@@ -1,9 +1,9 @@
 [DataConfig]
 NAME = "ComposedDataset"
-DATASET_NAMES = ["AbdomenCT-1K"]
-INCLUDE_ONLY_CLASSES = []
-BATCH_SIZE = 8
-NUM_WORKERS = 8
+DATASET_NAMES = ["ToothFairy2"]
+INCLUDE_ONLY_CLASSES = ['Pharynx']
+BATCH_SIZE = 2
+NUM_WORKERS = 2
 DATA_PREPROCESSED_PATH = "/work/grana_maxillo/UNetMergingData/preprocessed_data"
 DATA_RAW_PATH = "/work/grana_maxillo/UNetMergingData/raw_data"
 
@@ -11,7 +11,7 @@ DATA_RAW_PATH = "/work/grana_maxillo/UNetMergingData/raw_data"
 NAME = "UNet3D"
 COMPILE = true
 IN_CHANNELS = 1
-# PRETRAIN_CHECKPOINTS = None
+PRETRAIN_CHECKPOINTS = "/work/grana_maxillo/UNetMerging/checkpoints/checkpoint_190_2025-01-19 04:55:49.994931.pth"
 
 [OptimizerConfig]
 NAME = "SGD"
@@ -23,4 +23,5 @@ WEIGHT_DECAY = 0.0001
 NAME = "DiceBCELoss"
 
 [TrainConfig]
-EPOCHS = 200
+EPOCHS = 11
+SAVE_EVERY = 10

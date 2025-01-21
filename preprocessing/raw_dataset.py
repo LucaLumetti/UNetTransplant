@@ -10,7 +10,7 @@ class RawDataset:
             self.name: str = data["name"]
             self.labels: dict = data["labels"]
             self.num_training_samples: int = data["numTraining"]
-            self.train_samples: list = data["training"]
+            self.train_samples: list = data["training"] if "training" in data else None
             self.folder = dataset_json.parent
             self.imagesTr = dataset_json.parent / "imagesTr"
             self.labelsTr = dataset_json.parent / "labelsTr"

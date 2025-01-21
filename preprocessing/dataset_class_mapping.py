@@ -7,6 +7,7 @@ DATASET_IDX = {
     "BTCV_Abdomen": 5,
     "BTCV_Cervix": 6,
     "AbdomenCT-1K": 7,
+    "ToothFairy2": 8,
 }
 
 DATASET_ORIGINAL_LABELS = {
