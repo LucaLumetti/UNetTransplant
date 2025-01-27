@@ -5,6 +5,7 @@ import wandb
 from tqdm import tqdm
 
 import configs
+import datasets
 from datasets import DatasetFactory
 from experiments import BaseExperiment
 from losses import LossFactory
@@ -23,27 +24,61 @@ class PretrainExperiment(BaseExperiment):
     ):
         super(BaseExperiment, self).__init__()
 
-        self.train_dataset = DatasetFactory.create()
-        # TODO: add validation
+        self.train_dataset: datasets.ComposedDataset = DatasetFactory.create(
+            split="train"
+        )
+        self.val_dataset = DatasetFactory.create(split="val")
 
         # TODO: is there the correct place?
         self.train_loader = self.train_dataset.get_dataloader()
+        self.val_loader = self.val_dataset.get_dataloader(batch_size=1, num_workers=0)
 
-        self.backbone: UNet3D = ModelFactory.create(configs.BackboneConfig)
-        self.backbone = self.backbone.cuda()
+        self.backbone = self.setup_backbone()
+        self.heads = self.setup_heads()
+        self.optimizer = self.setup_optimizer()
+        self.scheduler = self.setup_scheduler()
 
-        self.heads: TaskHeads = ModelFactory.create(
+    def setup_backbone(self):
+        model = ModelFactory.create(configs.BackboneConfig)
+        return model
+
+    def setup_heads(self):
+        model = ModelFactory.create(
             configs.HeadsConfig, tasks=self.train_dataset.get_tasks()
         )
-        self.heads = self.heads.cuda()
+        return model
 
-        # wandb.watch(self.model, log="all", log_freq=100)
+    def setup_optimizer(
+        self,
+    ) -> torch.optim.Optimizer:
+        parameters_to_optimize = [
+            {
+                "params": self.backbone.parameters(),
+                "lr": configs.OptimizerConfig.BACKBONE_LR,
+                # "momentum": configs.OptimizerConfig.MOMENTUM,
+                "weight_decay": configs.OptimizerConfig.WEIGHT_DECAY,
+            },
+            {
+                "params": self.heads.parameters(),
+                "lr": configs.OptimizerConfig.HEAD_LR,
+                # "momentum": configs.OptimizerConfig.MOMENTUM,
+                # "weight_decay": configs.OptimizerConfig.WEIGHT_DECAY,
+            },
+        ]
+        optim = OptimizerFactory.create(parameters_to_optimize)
+        return optim
 
-        self.all_parameters = list(self.backbone.parameters()) + list(
-            self.heads.parameters()
+    def setup_scheduler(
+        self,
+    ):
+        if self.optimizer is None:
+            raise ValueError(
+                "Cannot setup scheduler without optimizer. Call setup_optimizer() first."
+            )
+
+        return torch.optim.lr_scheduler.CosineAnnealingLR(
+            self.optimizer, T_max=configs.TrainConfig.EPOCHS
         )
-        self.optimizer = OptimizerFactory.create(self.all_parameters)
-        # self.metrics = Metrics(self.config.model['n_classes'])
 
     def save(self, epoch):
         now = datetime.now()
@@ -54,7 +89,7 @@ class PretrainExperiment(BaseExperiment):
                 "backbone_state_dict": self.backbone.state_dict(),
                 "heads_state_dict": self.heads.state_dict(),
                 "optimizer_state_dict": self.optimizer.state_dict(),
-                # "scheduler_state_dict": self.scheduler.state_dict(),
+                "scheduler_state_dict": self.scheduler.state_dict(),
             },
             checkpoint_filename,
         )
@@ -63,8 +98,10 @@ class PretrainExperiment(BaseExperiment):
     def train(self):
         self.backbone.train()
         self.heads.train()
+        self.params = list(self.backbone.parameters()) + list(self.heads.parameters())
 
         for epoch in range(configs.TrainConfig.EPOCHS):
+            losses = []
             for i, sample in tqdm(
                 enumerate(self.train_loader),
                 desc=f"Epoch {epoch}",
@@ -74,93 +111,33 @@ class PretrainExperiment(BaseExperiment):
                 label = sample[1].to(device)
                 dataset_indices = sample[2].to(device)
 
+                if label.max() == 0:
+                    continue
+
                 backbone_pred = self.backbone(image)
-                heads_pred, loss = self.heads(backbone_pred, label, dataset_indices)
+                heads_pred, loss = self.heads(backbone_pred, dataset_indices, label)
 
                 self.optimizer.zero_grad()
                 loss.backward()
 
-                torch.nn.utils.clip_grad_norm_(self.all_parameters, 1.0)
+                torch.nn.utils.clip_grad_norm_(self.params, 1.0)
                 self.optimizer.step()
 
-                tqdm.write(f"Loss: {loss.item()}")
-                wandb.log(
-                    {
-                        "Train/Loss": loss.item(),
-                        "Train/lr": self.optimizer.param_groups[0]["lr"],
-                    }
-                )
+                losses.append(loss.item())
+
+            mean_loss = sum(losses) / len(losses)
+            tqdm.write(f"Loss: {mean_loss}")
+            wandb.log(
+                {
+                    "Train/Loss": mean_loss,
+                    "Train/lr": self.optimizer.param_groups[0]["lr"],
+                }
+            )
 
             # torch.cuda.empty_cache()
-
-            if epoch % 10 == 0:
-                # self.test(phase='Val')
-                # self.model.train()
+            self.scheduler.step()
+            if epoch % 25 == 0:
+                # self.evaluate()
+                # self.backbone.train()
+                # self.heads.train()
                 self.save(epoch)
-
-            # torch.cuda.empty_cache()
-
-    # @torch.inference_mode()
-    # def test(self, phase='Test'):
-    # assert phase in ['Test', 'Val'], f'phase should be Test or Val, passed: {phase}'
-
-    # num_workers = int(os.environ.get('SLURM_CPUS_PER_TASK', 1))
-    # dataset = self.test_dataset if phase == 'Test' else self.val_dataset
-
-    # avg_metrics = defaultdict(list)
-    # avg_loss = []
-    # self.model.eval()
-    # for idx, sample in tqdm(enumerate(dataset), desc=phase, total=len(dataset)):
-    #     grid_sampler = tio.inference.GridSampler(
-    #         sample,
-    #         self.config.dataset['patch_size'],
-    #         self.config.dataset['grid_overlap'],
-    #     )
-
-    #     pred_aggregator = tio.inference.GridAggregator(grid_sampler, overlap_mode="hann")
-    #     label_aggregator = tio.inference.GridAggregator(grid_sampler, overlap_mode="hann")
-
-    #     loader = DataLoader(
-    #         grid_sampler,
-    #         num_workers=num_workers,
-    #         batch_size=1,
-    #         pin_memory=True,
-    #     )
-
-    #     for j, patch in enumerate(loader):
-    #         image = patch['image'][tio.DATA].float().to(device)
-    #         label = patch['label'][tio.DATA].float().to(device)
-    #         _, prediction = self.model(image)
-    #         pred_aggregator.add_batch(prediction, patch[tio.LOCATION])
-    #         label_aggregator.add_batch(label, patch[tio.LOCATION])
-
-    #     prediction = pred_aggregator.get_output_tensor().unsqueeze(0)
-    #     label = label_aggregator.get_output_tensor().unsqueeze(0)
-
-    #     loss = self.loss(prediction, label).item()
-
-    #     prediction = prediction.argmax(dim=1, keepdim=True).cpu()
-    #     label = label.int().cpu()
-
-    #     metrics = self.metrics(prediction, label)
-
-    #     avg_loss.append(loss)
-    #     for k,v in metrics.items():
-    #         avg_metrics[k].append(v.cpu().numpy().item())
-
-    # avg_loss = sum(avg_loss)/len(avg_loss)
-
-    # for k, v in avg_metrics.items():
-    #     avg_metrics[k] = sum(v)/len(v)
-
-    # results ={
-    #     f'{phase}/Loss': avg_loss,
-    #     **{f'{phase}/{k}': v for k, v in avg_metrics.items()}
-    # }
-
-    # if self.debug:
-    #     print(results)
-
-    # wandb.log(results)
-
-    # return avg_metrics

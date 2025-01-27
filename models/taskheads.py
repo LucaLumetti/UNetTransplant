@@ -1,4 +1,4 @@
-from typing import Callable, List
+from typing import Callable, List, Optional
 
 import torch
 import torch.nn as nn
@@ -13,15 +13,18 @@ class Task:
         self.dataset_idx = dataset_idx
         self.num_output_channels = num_output_channels
         self.dataset_name = dataset_name
-        self.mask = torch.ones((1, num_output_channels, 1, 1, 1), dtype=torch.bool)
+        # self.mask = torch.ones((1, num_output_channels, 1, 1, 1), dtype=torch.bool)
 
-        if (
-            configs.DataConfig.INCLUDE_ONLY_CLASSES is not None
-            and configs.DataConfig.INCLUDE_ONLY_CLASSES != []
-        ):
-            for class_idx, class_name in DATASET_ORIGINAL_LABELS[dataset_name].items():
-                if class_name not in configs.DataConfig.INCLUDE_ONLY_CLASSES:
-                    self.mask[:, int(class_idx) - 1, :, :, :] = 0
+    # def create_task_mask(self,):
+    #     if (
+    #         configs.DataConfig.INCLUDE_ONLY_CLASSES is None
+    #         or len(configs.DataConfig.INCLUDE_ONLY_CLASSES) == 0
+    #     ):
+    #         return
+
+    #     for class_idx, class_name in DATASET_ORIGINAL_LABELS[self.dataset_name].items():
+    #         if class_name not in configs.DataConfig.INCLUDE_ONLY_CLASSES and class_idx not in configs.DataConfig.INCLUDE_ONLY_CLASSES:
+    #             self.mask[:, int(class_idx) - 1, :, :, :] = 0
 
 
 class TaskHeads(nn.Module):
@@ -38,28 +41,47 @@ class TaskHeads(nn.Module):
             }
         )
 
-    # x and y have shape (B, C, H, W, D)
-    # task_idx have shape (B)
-    def forward(self, x: torch.Tensor, y: torch.Tensor, task_idx: torch.Tensor):
+    # TODO: maybe remove y dependency and compute loss in the parent. Mask would still be used. Maybe a problem for grouped_y
+    def forward(
+        self,
+        x: torch.Tensor,
+        task_idx: torch.Tensor,
+        y: Optional[torch.Tensor] = None,
+    ):
         # group x based on the task_idx
         grouped_x = {
             task.dataset_idx: x[task_idx == task.dataset_idx] for task in self.tasks
         }
-        # group y based on the task_idx
-        grouped_y = {
-            task.dataset_idx: y[task_idx == task.dataset_idx] for task in self.tasks
-        }
+        grouped_x = {k: v for k, v in grouped_x.items() if v.shape[0] > 0}
+
+        if y is not None:
+            # group y based on the task_idx
+            grouped_y = {
+                task.dataset_idx: y[task_idx == task.dataset_idx] for task in self.tasks
+            }
+            grouped_y = {k: v for k, v in grouped_y.items() if v.shape[0] > 0}
         predictions = []
         losses = []
         for i, task in enumerate(self.tasks):
             i = task.dataset_idx
-            prediction = self.task_heads[str(i)](grouped_x[i])
-            mask = task.mask.to(x.device)
-            loss = self.loss_fn(prediction, grouped_y[i], mask=mask)
-            losses.append(loss)
-            predictions.append(prediction * mask)
+            if i not in grouped_x.keys():
+                continue
+            task_x = grouped_x[i]
+            task_y = grouped_y[i] if y is not None else None
+            task_head = self.task_heads[str(i)]
 
-        return torch.cat(predictions), torch.stack(losses).mean()
+            prediction = task_head(task_x)
+            if task_y is not None:
+                loss = self.loss_fn(prediction, task_y)
+                losses.append(loss)
+            predictions.append(prediction)
+
+        # predictions = torch.cat(predictions)
+        if len(losses) == 0:
+            losses = torch.tensor(0)
+        else:
+            losses = torch.stack(losses).mean()
+        return predictions, losses
 
 
 if __name__ == "__main__":

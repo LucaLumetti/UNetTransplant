@@ -17,13 +17,14 @@ class DiceLoss(nn.Module):
         self.nonlinearity = activation
         self.smooth = smooth
 
-    def forward(self, x, y, mask):
-        mask = mask.flatten()
+    def forward(self, x, y, mask=None):
         if self.nonlinearity is not None:
             x = self.nonlinearity(x)
 
-        y = y[:, mask, :, :, :]
-        x = x[:, mask, :, :, :]
+        if mask is not None:
+            mask = mask.flatten()
+            y = y[:, mask, :, :, :]
+            x = x[:, mask, :, :, :]
 
         # make everything shape (b, c)
         axes = tuple(range(2, x.ndim))

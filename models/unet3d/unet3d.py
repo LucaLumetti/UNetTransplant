@@ -224,15 +224,15 @@ class ResidualUNet3D(AbstractUNet):
     def __init__(
         self,
         in_channels,
-        out_channels,
+        out_channels=None,
         final_activation=None,
-        f_maps=32,
+        f_maps=64,
         layer_order="gcr",
         num_groups=8,
         num_levels=4,
         conv_padding=1,
         conv_upscale=2,
-        upsample="default",
+        upsample="nearest",
         dropout_prob=0.1,
         **kwargs
     ):
@@ -250,5 +250,5 @@ class ResidualUNet3D(AbstractUNet):
             upsample=upsample,
             dropout_prob=dropout_prob,
             is3d=True,
-            final_conv=True,
+            final_conv=False,
         )

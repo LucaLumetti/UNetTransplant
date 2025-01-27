@@ -24,9 +24,10 @@ class _BackboneConfig:
     NAME: str = "UNet3D"
     COMPILE: bool = True
     IN_CHANNELS: int = 1
-    PRETRAIN_CHECKPOINTS: Optional[Path] = Path(
-        "/work/grana_maxillo/UNetMerging/checkpoints/checkpoint_190_2025-01-19 04:55:49.994931.pth"
-    )
+    PRETRAIN_CHECKPOINTS: Optional[Path] = None
+    # PRETRAIN_CHECKPOINTS: Optional[Path] = Path(
+    #     "/work/grana_maxillo/UNetMerging/checkpoints/checkpoint_190_2025-01-19 04:55:49.994931.pth"
+    # )
 
 
 @dataclass
@@ -34,7 +35,7 @@ class _HeadsConfig:
     NAME: str = "TaskHeads"
     COMPILE: bool = True
     PRETRAIN_CHECKPOINTS: Optional[Path] = None
-    IN_CHANNELS: int = 32
+    IN_CHANNELS: int = 64
 
 
 @dataclass
@@ -63,6 +64,8 @@ class _OptimizerConfig:
     LR: float = 0.1
     MOMENTUM: float = 0.9
     WEIGHT_DECAY: float = 0.0001
+    BACKBONE_LR: float = 0.001
+    HEAD_LR: float = 0.1
 
 
 @dataclass

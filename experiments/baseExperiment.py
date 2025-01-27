@@ -1,14 +1,18 @@
 import os
+from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Union
+from typing import Any, Optional, Union
 
 import numpy as np
 import numpy.typing as npt
 import torch
 import wandb
+from tqdm import tqdm
 
+import configs
 from metrics.Metrics import Metrics
+from preprocessing.preprocessor import Preprocessor
 
 
 class BaseExperiment:
@@ -16,7 +20,7 @@ class BaseExperiment:
         self.backbone: torch.nn.Module
         self.heads: torch.nn.Module
         self.optimizer: torch.optim.Optimizer
-        self.scheduler: torch.optim.lr_scheduler._LRScheduler
+        self.scheduler: Any
         self.metrics: Metrics = Metrics()
 
     def train(self):
@@ -65,6 +69,8 @@ class BaseExperiment:
         print(f"Checkpoint loaded from {checkpoint_path}")
 
     def legacy_model_load(self, backbone_state_dict: dict):
+        current_state_dict = self.backbone.state_dict()
+
         # remove _orig_mod from keys
         str_to_remove = "_orig_mod."
         backbone_state_dict = {
@@ -77,7 +83,7 @@ class BaseExperiment:
             if "final_conv" in key:
                 del backbone_state_dict[key]
 
-        self.backbone.load_state_dict(backbone_state_dict)
+        # self.backbone.load_state_dict(backbone_state_dict)
 
     def debug_batch(self, x, y, pred):
         x = x.cpu().detach().numpy()
@@ -121,3 +127,91 @@ class BaseExperiment:
 
         metrics = self.metrics.compute(y_true, y_pred)
         return metrics
+
+    def evaluate(
+        self,
+    ):
+        self.backbone.eval()
+        self.heads.eval()
+
+        with torch.no_grad():
+            losses = []
+            metrics = defaultdict(list)
+
+            for i, sample in tqdm(
+                enumerate(self.val_loader),
+                desc=f"Val",
+                total=len(self.val_loader),
+            ):
+                image = sample[0]
+                label = sample[1]
+                dataset_indices = sample[2]
+
+                pred = self.predict(image, dataset_idx=dataset_indices)
+
+                pred = pred.to("cpu")
+                label = label.to("cpu")
+                metric_values = self.metrics.compute(pred, label.squeeze())
+                for key, value in metric_values.items():
+                    metrics[key].append(value)
+
+            dict_to_log = {
+                # "Val/Loss": sum(losses) / len(losses),
+            }
+            for key, value in metrics.items():
+                dict_to_log[f"Val/{key}"] = sum(value) / len(value)
+            wandb.log(dict_to_log)
+
+    def predict(
+        self,
+        image_array: Union[torch.Tensor, npt.NDArray],
+        dataset_idx: Optional[int] = None,
+    ):
+        self.backbone.eval()
+        self.heads.eval()
+
+        if isinstance(image_array, torch.Tensor):
+            if image_array.device != "cpu":
+                image_array = image_array.detach().cpu()
+
+            image_array = image_array.numpy()
+
+        image_array = image_array.squeeze()
+
+        image_array, _ = Preprocessor.pad_to_patchable_shape(image_array, None)
+
+        if image_array.ndim == 3:
+            image_array = image_array[np.newaxis, ...]
+
+        patches = Preprocessor.extract_patches(image_array, None, patch_overlap=0.2)
+
+        num_classes_to_predict = len(configs.DataConfig.DATASET_NAMES)
+        spatial_shape = image_array.shape[-3:]
+        num_pred_classes = sum(t.num_output_channels for t in self.heads.tasks)
+        pred = torch.zeros((num_pred_classes, *spatial_shape), device="cuda")
+
+        for image_patch, _, coords in patches:
+            image_patch = torch.from_numpy(image_patch).unsqueeze(0).to("cuda")
+            backbone_pred = self.backbone(image_patch)
+            heads_pred, loss = self.heads(backbone_pred, dataset_idx)
+
+            heads_pred = torch.concatenate(heads_pred).squeeze(0)
+
+            pred[
+                :,
+                coords[0] : heads_pred.shape[-3] + coords[0],
+                coords[1] : heads_pred.shape[-2] + coords[1],
+                coords[2] : heads_pred.shape[-1] + coords[2],
+            ] = heads_pred.detach()
+
+            del image_patch, backbone_pred, heads_pred
+
+        background_channel = torch.zeros((1, *spatial_shape), device="cuda")
+
+        pred = torch.concatenate([background_channel, pred], axis=0)
+
+        del background_channel, patches
+
+        pred = pred.argmax(axis=0)
+
+        return pred

@@ -18,8 +18,8 @@ class OptimizerFactory:
         try:
             optim = optimizer_class(
                 parameters,
-                momentum=configs.OptimizerConfig.MOMENTUM,
-                weight_decay=configs.OptimizerConfig.WEIGHT_DECAY,
+                # momentum=configs.OptimizerConfig.MOMENTUM,
+                # weight_decay=configs.OptimizerConfig.WEIGHT_DECAY,
             )
         except TypeError as e:
             raise TypeError(f"Could not instantiate {optimizer_class}: {e}")

@@ -1,14 +1,17 @@
 import inspect
-from typing import Literal, Optional
+from typing import Literal, Optional, Union
 
 import configs
 import datasets
+from datasets import ComposedDataset
 from datasets.LoadableDataset import LoadableDataset
 
 
 class DatasetFactory:
     @staticmethod
-    def create(split: Literal["train", "val", "test"]) -> LoadableDataset:
+    def create(
+        split: Literal["train", "val", "test"]
+    ) -> Union[LoadableDataset, ComposedDataset]:
         name = configs.DataConfig.NAME
         if name in datasets.__dict__:
             model_class = getattr(datasets, name)

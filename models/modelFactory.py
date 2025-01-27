@@ -41,11 +41,15 @@ class ModelFactory:
             raise TypeError(f"Could not instantiate {model_class}: {e}")
 
         cuda_capability = torch.cuda.get_device_capability(0)
-        if cuda_capability[0] >= 7 and model_config.COMPILE:
-            model = torch.compile(model=model)
+        # if cuda_capability[0] >= 7 and model_config.COMPILE:
+        #     model = torch.compile(model=model)
 
         init_weight_he(model)
+        model = model.cuda()
 
+        print(
+            f"Model {name} created, number of parameters: {sum(p.numel() for p in model.parameters())/1e6:.2f}M"
+        )
         return model
 
     def create_from_checkpoint(checkpoint_path: str) -> torch.nn.Module:

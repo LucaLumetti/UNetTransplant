@@ -1,26 +1,25 @@
 [DataConfig]
 NAME = "ComposedDataset"
-DATASET_NAMES = ["AbdomenCT-1K"]
+DATASET_NAMES = ["AbdomenCT-1K", "AMOS", "BTCV_Abdomen", "BTCV_Cervix", "SegThor", "TotalSegmentator", "ZhimingCui"]
 INCLUDE_ONLY_CLASSES = []
-BATCH_SIZE = 8
-NUM_WORKERS = 8
+BATCH_SIZE = 6
+NUM_WORKERS = 4
 DATA_PREPROCESSED_PATH = "/work/grana_maxillo/UNetMergingData/preprocessed_data"
 DATA_RAW_PATH = "/work/grana_maxillo/UNetMergingData/raw_data"
 
 [BackboneConfig]
-NAME = "UNet3D"
-COMPILE = true
+NAME = "ResidualUNet3D"
+COMPILE = false
 IN_CHANNELS = 1
 # PRETRAIN_CHECKPOINTS = None
 
 [OptimizerConfig]
-NAME = "SGD"
-LR = 0.1
-MOMENTUM = 0.9
-WEIGHT_DECAY = 0.0001
+NAME = "AdamW"
+LR = 0.001
+WEIGHT_DECAY = 0.01
 
 [LossConfig]
 NAME = "DiceBCELoss"
 
 [TrainConfig]
-EPOCHS = 200
+EPOCHS = 10000

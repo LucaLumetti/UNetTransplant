@@ -8,6 +8,8 @@ old/
 *.pth
 *.npy
 domande_angel.txt
+slurm_logs/
+*.toml
 
 
 # Byte-compiled / optimized / DLL files

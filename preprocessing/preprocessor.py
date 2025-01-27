@@ -17,8 +17,8 @@ class Preprocessor:
         self.dataset = dataset
         # self.stats = stats
 
+    @staticmethod
     def extract_patches(
-        self,
         image: npt.NDArray,
         label: npt.NDArray,
         patch_size: Union[int, Tuple[int, int, int]] = (96, 96, 96),
@@ -28,7 +28,7 @@ class Preprocessor:
             0.0,
         ),
     ):
-        if image.shape[-3:] != label.shape[-3:]:
+        if label is not None and image.shape[-3:] != label.shape[-3:]:
             print(f"Image and label shape mismatch: {image.shape} != {label.shape}")
             raise ValueError("Image and label shape mismatch.")
 
@@ -52,18 +52,21 @@ class Preprocessor:
                         y : y + patch_size[1],
                         x : x + patch_size[2],
                     ]
-                    patch_label = label[
-                        :,
-                        z : z + patch_size[0],
-                        y : y + patch_size[1],
-                        x : x + patch_size[2],
-                    ]
-                    patches.append((patch_image, patch_label))
+                    if label is not None:
+                        patch_label = label[
+                            :,
+                            z : z + patch_size[0],
+                            y : y + patch_size[1],
+                            x : x + patch_size[2],
+                        ]
+                    else:
+                        patch_label = None
+                    patches.append((patch_image, patch_label, (z, y, x)))
 
         return patches
 
+    @staticmethod
     def preprocess(
-        self,
         image: sitk.Image,
         label: sitk.Image,
         target_spacing: Tuple[float, float, float] = (1.0, 1.0, 1.0),
@@ -75,12 +78,12 @@ class Preprocessor:
         image_array = sitk.GetArrayFromImage(image).astype(np.float32, copy=False)
         label_array = sitk.GetArrayFromImage(label).astype(np.int8, copy=False)
 
-        image_array = self.clip_percentile(image_array)
-        image_array = self.normalize(image_array)
+        image_array = Preprocessor.clip_percentile(image_array)
+        image_array = Preprocessor.normalize(image_array)
         return image_array, label_array
 
+    @staticmethod
     def resample(
-        self,
         image: sitk.Image,
         target_spacing: Tuple[float, float, float],
         interpolator: int,
@@ -98,9 +101,8 @@ class Preprocessor:
         )
         return resampler.Execute(image)
 
-    def clip_percentile(
-        self, image_array: npt.NDArray, mask: Optional[npt.NDArray] = None
-    ):
+    @staticmethod
+    def clip_percentile(image_array: npt.NDArray, mask: Optional[npt.NDArray] = None):
         """
         Clip the intensities of the image to the 0.5 and 99.5 percentile of the intensities of the training set.
         """
@@ -109,7 +111,8 @@ class Preprocessor:
         image_array = np.clip(image_array, lower_bound, upper_bound)
         return image_array
 
-    def normalize(self, image_array: npt.NDArray, mask: Optional[npt.NDArray] = None):
+    @staticmethod
+    def normalize(image_array: npt.NDArray, mask: Optional[npt.NDArray] = None):
         """
         Normalize the intensities of the image to have zero mean and unit variance.
         """
@@ -151,17 +154,25 @@ class Preprocessor:
         # check if the image and label are alredy preprocessed
         image_name = image.split("/")[-1].split(".")[0]
 
+        image_folder = output_folder / self.dataset.name / image_name / "images"
+        label_folder = output_folder / self.dataset.name / image_name / "labels"
+
+        create_only_full = False
         already_preproc = (output_folder / self.dataset.name / image_name).exists()
         if already_preproc:
-            tqdm.write(f"Already preprocessed {sample['image']}")
-            return
+            # check that a *_full.npy file exists
+            if (image_folder / f"{image_name}_full.npy").exists() and (
+                label_folder / f"{image_name}_full.npy"
+            ).exists():
+                tqdm.write(f"Already preprocessed {sample['image']}")
+                return
+            else:
+                create_only_full = True
 
         # print(f"Processing {image_name}")
         try:
             image: sitk.Image = sitk.ReadImage(self.dataset.folder / sample["image"])
-            label: sitk.Image = sitk.ReadImage(
-                self.dataset.folder / sample["label"].replace("_0000", "")
-            )
+            label: sitk.Image = sitk.ReadImage(self.dataset.folder / sample["label"])
         except RuntimeError as e:
             print(
                 f"Could not read image {sample['image']} or label {sample['label']}\n{e}"
@@ -191,18 +202,24 @@ class Preprocessor:
         if label_array.ndim == 3:
             label_array = label_array[np.newaxis, ...]
 
-        try:
-            patches = self.extract_patches(image_array, label_array)
-        except ValueError:
-            print(f"Image too small? {image_array.shape}")
-            return
-
         if not image_folder.exists():
             image_folder.mkdir(parents=True)
         if not label_folder.exists():
             label_folder.mkdir(parents=True)
 
-        for i, (image_patch, label_patch) in tqdm(
+        np.save(image_folder / f"{image_name}_full.npy", image_array)
+        np.save(label_folder / f"{image_name}_full.npy", label_array)
+
+        if create_only_full:
+            return
+
+        try:
+            patches = Preprocessor.extract_patches(image_array, label_array)
+        except ValueError:
+            print(f"Image too small? {image_array.shape}")
+            return
+
+        for i, (image_patch, label_patch, coords) in tqdm(
             enumerate(patches), desc=f"Saving patches for {image_name}"
         ):
             if np.random.rand() > keep_empty_prob and np.max(label_patch) == 0:
@@ -225,8 +242,10 @@ class Preprocessor:
 
     #     return one_hot
 
+    # TODO: make this function accept a single npt.NDArray and just call it two times in the parent fn
+    @staticmethod
     def pad_to_patchable_shape(
-        self, image_array: npt.NDArray, label_array: npt.NDArray
+        image_array: npt.NDArray, label_array: Optional[npt.NDArray] = None
     ):
         for i in range(3):
             if image_array.shape[3 - i - 1] < 96:
@@ -241,15 +260,17 @@ class Preprocessor:
                     mode="constant",
                     constant_values=0,
                 )
-                label_array = np.pad(
-                    label_array,
-                    label_padding_at_dim_i,
-                    mode="constant",
-                    constant_values=0,
-                )
+                if label_array is not None:
+                    label_array = np.pad(
+                        label_array,
+                        label_padding_at_dim_i,
+                        mode="constant",
+                        constant_values=0,
+                    )
         return image_array, label_array
 
-    def convert_toothfairy2_labels(self, label_array: npt.NDArray):
+    @staticmethod
+    def convert_toothfairy2_labels(label_array: npt.NDArray):
         label_array[label_array >= 21] -= 2
         label_array[label_array >= 31] -= 2
         label_array[label_array >= 41] -= 2

@@ -1,3 +1,5 @@
+from typing import Optional
+
 import torch
 from torch import nn
 from tqdm import tqdm
@@ -15,9 +17,13 @@ class DiceBCELoss(nn.Module):
         self.dice = DiceLoss(activation=torch.sigmoid, batch_dice=False)
 
     def forward(
-        self, net_output: torch.Tensor, target: torch.Tensor, mask: torch.Tensor
+        self,
+        net_output: torch.Tensor,
+        target: torch.Tensor,
+        mask: Optional[torch.Tensor] = None,
     ):
-        mask = mask.flatten()
+        if mask is not None:
+            mask = mask.flatten()
         y_shape_background = list(net_output.shape)
         y_shape_background[1] += 1
 
@@ -30,9 +36,10 @@ class DiceBCELoss(nn.Module):
         dice_loss = self.dice(net_output, target_onehot, mask=mask)
         target_onehot = target_onehot.float()
 
-        masked_net_output = net_output[:, mask, :, :, :]
-        masked_target = target_onehot[:, mask, :, :, :]
-        bce_loss = self.bce(masked_net_output, masked_target)
+        if mask is not None:
+            net_output = net_output[:, mask, :, :, :]
+            target_onehot = target_onehot[:, mask, :, :, :]
+        bce_loss = self.bce(net_output, target_onehot)
 
         result = dice_loss + bce_loss
 

@@ -1,7 +1,7 @@
 [DataConfig]
 NAME = "ComposedDataset"
 DATASET_NAMES = ["ToothFairy2"]
-INCLUDE_ONLY_CLASSES = ['Pharynx']
+INCLUDE_ONLY_CLASSES = ['Lower Jawbone']
 BATCH_SIZE = 2
 NUM_WORKERS = 2
 DATA_PREPROCESSED_PATH = "/work/grana_maxillo/UNetMergingData/preprocessed_data"

@@ -6,41 +6,34 @@ import torch
 class TaskVector:
     def __init__(
         self,
-        pretrained_checkpoints: Optional[dict] = None,
-        finetuned_checkpoints: Optional[dict] = None,
-        task_vector: Optional[dict] = None,
+        checkpoints: Optional[str] = None,
+        model: Optional[torch.nn.Module] = None,
     ):
-        if pretrained_checkpoints is not None and finetuned_checkpoints is not None:
-            assert (
-                task_vector is None
-            ), "Task vector should be None if both checkpoints are provided"
-            self.task_vector = {
-                key: finetuned_checkpoints - pretrained_checkpoints
-                for key in finetuned_checkpoints.keys()
-            }
-        elif task_vector is not None:
-            assert (
-                pretrained_checkpoints is None and finetuned_checkpoints is None
-            ), "Both checkpoints should be None if task vector is provided"
-            self.task_vector = task_vector
-        else:
-            raise ValueError(
-                "Either task vector or both checkpoints should be provided"
-            )
-
-    def __add__(self, other: "TaskVector"):
         assert (
-            self.task_vector.keys() == other.task_vector.keys()
-        ), "Task vectors should have the same keys"
+            checkpoints is not None or model is not None
+        ), "Either checkpoints or model must be provided."
+        assert (
+            checkpoints is None or model is None
+        ), "Only one of checkpoints or model must be provided."
 
-        return TaskVector(
-            task_vector={
-                key: self.task_vector[key] + other.task_vector[key]
-                for key in self.task_vector.keys()
-            }
-        )
+        if checkpoints is not None:
+            self.params = self.get_params_from_checkpoints(checkpoints)
+        else:
+            self.model = model
 
-    def get_parameters(
-        self,
-    ):
-        return self.task_vector
+    def get_params_from_checkpoints(self, checkpoints: str):
+        ckpt = torch.load(checkpoints)
+        backbone_params = ckpt["backbone_state_dict"]
+        param_list = torch.nn.ParameterList(backbone_params.values())
+
+        return param_list
+
+    def create_params_from_model(self, model: torch.nn.Module):
+        pass
+
+
+if __name__ == "__main__":
+    task_vector = TaskVector(
+        checkpoints="/work/grana_maxillo/UNetMerging/checkpoints/TaskVector_grid_search_configs/taskvector_tf2_Lower_Jawbone_BLR_0_WD_0.1.toml/epoch0005_2025-01-23 15:49:33.364213.pth"
+    )
+    print(task_vector.model)

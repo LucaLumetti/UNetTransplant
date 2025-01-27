@@ -25,6 +25,19 @@ class PreprocessedDataset(LoadableDataset):
         self.dataset_json = self.load_dataset_json()
         self.subjects = self.load_subjects()
 
+        class_names_to_predict = configs.DataConfig.INCLUDE_ONLY_CLASSES
+        if class_names_to_predict is None or len(class_names_to_predict) == 0:
+            class_to_predict = range(
+                len(DATASET_ORIGINAL_LABELS[self.dataset_name].keys())
+            )
+        else:
+            class_to_predict = []
+            for class_idx, class_name in DATASET_ORIGINAL_LABELS[
+                self.dataset_name
+            ].items():
+                if class_name in class_names_to_predict:
+                    class_to_predict.append(int(class_idx))
+        self.class_to_predict = class_to_predict
         print(f"Loaded {len(self.subjects)} subjects from dataset {self.dataset_name}")
 
     def load_dataset_json(
@@ -67,7 +80,8 @@ class PreprocessedDataset(LoadableDataset):
         # hacky way to split the dataset into train/val. For test a different approach should be used TODO
         # TODO: support multiple splits in the same dataset i.e., ['train', 'val']
         all_volumes_dir = sorted(all_volumes_dir)
-        amount_of_train_volumes = math.floor(0.9 * len(all_volumes_dir))
+        amount_of_val_volumes = 5
+        amount_of_train_volumes = len(all_volumes_dir) - amount_of_val_volumes
         if "train" in self.split:
             all_volumes_dir = all_volumes_dir[:amount_of_train_volumes]
         elif "val" in self.split:
@@ -75,17 +89,31 @@ class PreprocessedDataset(LoadableDataset):
         else:
             raise ValueError(f"Split {self.split} not supported.")
 
+        suffix_to_search = "*.npy"
+        if "val" in self.split:
+            suffix_to_search = "*_full.npy"
+
         subjects = []
         for volume_dir in all_volumes_dir:
             images_path = list(
-                (preprocessed_dataset_path / volume_dir / "images").glob("*.npy")
+                (preprocessed_dataset_path / volume_dir / "images").glob(
+                    suffix_to_search
+                )
             )
             labels_path = list(
-                (preprocessed_dataset_path / volume_dir / "labels").glob("*.npy")
+                (preprocessed_dataset_path / volume_dir / "labels").glob(
+                    suffix_to_search
+                )
             )
+
+            if "train" in self.split:
+                images_path = [p for p in images_path if "full" not in p.name]
+                labels_path = [p for p in labels_path if "full" not in p.name]
+
             if len(images_path) == 0 or len(labels_path) == 0:
                 # print(f"Volume {volume_dir} has no images, skipping.")
                 continue
+
             subjects.append({"images": images_path, "labels": labels_path})
         return subjects
 
@@ -125,6 +153,10 @@ class PreprocessedDataset(LoadableDataset):
         images_paths = subject["images"]
         labels_paths = subject["labels"]
 
+        if len(images_paths) == 0 or len(labels_paths) == 0:
+            print(f"Subject {idx} has no images or labels, skipping.")
+            return self.__getitem__(idx + 1)
+
         random_patch_idx = np.random.randint(0, len(images_paths))
         try:
             image = np.load(images_paths[random_patch_idx])
@@ -140,14 +172,25 @@ class PreprocessedDataset(LoadableDataset):
         # image = np.memmap(images_paths[random_patch_idx], shape=(1, 96, 96, 96), dtype="float32", mode="r")
         # label = np.memmap(labels_paths[random_patch_idx], shape=(62, 96, 96, 96), dtype="float32", mode="r")
 
+        label = label * np.isin(label, self.class_to_predict)
+        unique_values = np.sort(np.unique(label))
+        value_to_index = {value: idx for idx, value in enumerate(unique_values)}
+        label = np.vectorize(value_to_index.get)(label)
+
         return image, label, DATASET_IDX[self.dataset_name]
 
     def get_tasks(
         self,
     ):
+        num_output_channels = configs.DataConfig.INCLUDE_ONLY_CLASSES
+        if num_output_channels is None or len(num_output_channels) == 0:
+            num_output_channels = len(DATASET_ORIGINAL_LABELS[self.dataset_name].keys())
+        else:
+            num_output_channels = len(num_output_channels)
         task = Task(
             dataset_name=self.dataset_name,
             dataset_idx=DATASET_IDX[self.dataset_name],
-            num_output_channels=len(DATASET_ORIGINAL_LABELS[self.dataset_name].keys()),
+            # num_output_channels=len(DATASET_ORIGINAL_LABELS[self.dataset_name].keys()),
+            num_output_channels=num_output_channels,
         )
         return [task]

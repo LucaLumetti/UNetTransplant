@@ -23,10 +23,10 @@ if __name__ == "__main__":
     print(f"Found {len(datasets)} datasets: {[dataset.name for dataset in datasets]}")
 
     for dataset in datasets:
-        if (configs.DataConfig.DATA_PREPROCESSED_PATH / dataset.name).exists():
-            print(f"Dataset {dataset.name} already preprocessed. Skipping.")
-            continue
+        # if (configs.DataConfig.DATA_PREPROCESSED_PATH / dataset.name).exists():
+        #     print(f"Dataset {dataset.name} already preprocessed. Skipping.")
+        #     continue
         # dataset_stats = DatasetStats(dataset)
         print(f"Dataset {dataset.name}.")
         preprocessor = Preprocessor(dataset)
-        preprocessor.run_parallel(configs.DataConfig.DATA_PREPROCESSED_PATH)
+        preprocessor.run(configs.DataConfig.DATA_PREPROCESSED_PATH)

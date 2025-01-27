@@ -12,34 +12,39 @@ def main():
     arg_parser.add_argument(
         "--experiment",
         help="Name of the experiment, supported: 'PretrainExperiment'.",
-        default="FinetuneExperiment",
+        default="PretrainExperiment",
     )
     arg_parser.add_argument(
         "--config",
         help="Path to the configuration file.",
-        default="configs/finetune_tf_pharynx.toml",
+        # default="configs/taskvector_tf_mandible.toml",
+        default="/work/grana_maxillo/UNetMerging/configs/pretrain.toml",
+    )
+    arg_parser.add_argument(
+        "--name",
+        help="Name for the experiment",
+        default=None,
     )
     args = arg_parser.parse_args()
 
     config_path = find_config_path(args.config)
     configs.initialize_config(config_path)
 
+    if args.name is None:
+        args.name = f"{args.experiment}_{wandb.util.generate_id()}"
+
     wandb.init(
         project="UNetMerging",
-        name=f"{args.experiment}_{wandb.util.generate_id()}",
+        name=args.name,
         entity="maxillo",
         mode="online",
         config=configs.generate_config_json(),
     )
 
     experiment = ExperimentFactory.create(name=args.experiment)
-    if configs.BackboneConfig.PRETRAIN_CHECKPOINTS is not None:
-        experiment.load(
-            checkpoint_path=configs.BackboneConfig.PRETRAIN_CHECKPOINTS,
-        )
 
     experiment.train()
-    experiment.evaluate()
+    # experiment.evaluate()
 
 
 def find_config_path(config: str) -> Path:
