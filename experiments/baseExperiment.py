@@ -22,6 +22,7 @@ class BaseExperiment:
         self.optimizer: torch.optim.Optimizer
         self.scheduler: Any
         self.metrics: Metrics = Metrics()
+        self.starting_epoch = 0
 
     def train(self):
         raise NotImplementedError
@@ -29,8 +30,8 @@ class BaseExperiment:
     def evaluate(self):
         raise NotImplementedError
 
-    def predict(self):
-        raise NotImplementedError
+    def predict(self, *args, **kwargs):
+        return self.functional_predict(self.backbone, self.heads, *args, **kwargs)
 
     def save(self, epoch):
         now = datetime.now()
@@ -57,8 +58,7 @@ class BaseExperiment:
         load_heads=False,
     ) -> None:
         checkpoint = torch.load(checkpoint_path)
-        # self.backbone.load_state_dict(checkpoint["backbone_state_dict"])
-        self.legacy_model_load(checkpoint["model_state_dict"])
+        self.legacy_model_load(checkpoint["backbone_state_dict"])
 
         if load_heads:
             self.heads.load_state_dict(checkpoint["heads_state_dict"])
@@ -66,11 +66,12 @@ class BaseExperiment:
             self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         if load_scheduler:
             self.scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+
+        if "epoch" in checkpoint:
+            self.starting_epoch = checkpoint["epoch"]
         print(f"Checkpoint loaded from {checkpoint_path}")
 
     def legacy_model_load(self, backbone_state_dict: dict):
-        current_state_dict = self.backbone.state_dict()
-
         # remove _orig_mod from keys
         str_to_remove = "_orig_mod."
         backbone_state_dict = {
@@ -83,9 +84,9 @@ class BaseExperiment:
             if "final_conv" in key:
                 del backbone_state_dict[key]
 
-        # self.backbone.load_state_dict(backbone_state_dict)
+        self.backbone.load_state_dict(backbone_state_dict)
 
-    def debug_batch(self, x, y, pred):
+    def debug_batch(self, x, y, pred, folder_name="batch"):
         x = x.cpu().detach().numpy()
         y = y.cpu().detach().numpy()
         pred = pred.cpu().detach().numpy()
@@ -99,11 +100,12 @@ class BaseExperiment:
             axis=1,
         )
         pred = pred.argmax(axis=1)
-        pred = pred.reshape(y.shape)
+        pred = pred.reshape(-1, 96, 96, 96)
         print(f"x: {x.shape}, y: {y.shape}, mask: {pred.shape}")
-        np.save("debug/image.npy", x)
-        np.save("debug/label.npy", y)
-        np.save("debug/pred.npy", pred)
+        os.makedirs(f"debug/{folder_name}", exist_ok=True)
+        np.save(f"debug/{folder_name}/image.npy", x)
+        np.save(f"debug/{folder_name}/label.npy", y)
+        np.save(f"debug/{folder_name}/pred.npy", pred)
 
     def compute_metrics(
         self,
@@ -146,12 +148,23 @@ class BaseExperiment:
                 image = sample[0]
                 label = sample[1]
                 dataset_indices = sample[2]
-
+                original_shape = image.shape
                 pred = self.predict(image, dataset_idx=dataset_indices)
 
                 pred = pred.to("cpu")
                 label = label.to("cpu")
-                metric_values = self.metrics.compute(pred, label.squeeze())
+                pred = pred[
+                    : original_shape[-3], : original_shape[-2], : original_shape[-1]
+                ]
+                try:
+                    metric_values = self.metrics.compute(pred, label.squeeze())
+                except Exception as e:
+                    print("Failed to compute metrics: ", e)
+                    print("pred shape: ", pred.shape)
+                    print("label shape: ", label.shape)
+                    print("pred unique: ", np.unique(pred))
+                    print("label unique: ", np.unique(label))
+                    continue
                 for key, value in metric_values.items():
                     metrics[key].append(value)
 
@@ -162,13 +175,15 @@ class BaseExperiment:
                 dict_to_log[f"Val/{key}"] = sum(value) / len(value)
             wandb.log(dict_to_log)
 
-    def predict(
-        self,
+    @staticmethod
+    def functional_predict(
+        backbone: torch.nn.Module,
+        heads: torch.nn.Module,
         image_array: Union[torch.Tensor, npt.NDArray],
         dataset_idx: Optional[int] = None,
     ):
-        self.backbone.eval()
-        self.heads.eval()
+        backbone.eval()
+        heads.eval()
 
         if isinstance(image_array, torch.Tensor):
             if image_array.device != "cpu":
@@ -183,17 +198,17 @@ class BaseExperiment:
         if image_array.ndim == 3:
             image_array = image_array[np.newaxis, ...]
 
-        patches = Preprocessor.extract_patches(image_array, None, patch_overlap=0.2)
+        patches = Preprocessor.extract_patches(image_array, None, patch_overlap=0.5)
 
         num_classes_to_predict = len(configs.DataConfig.DATASET_NAMES)
         spatial_shape = image_array.shape[-3:]
-        num_pred_classes = sum(t.num_output_channels for t in self.heads.tasks)
+        num_pred_classes = sum(t.num_output_channels for t in heads.tasks)
         pred = torch.zeros((num_pred_classes, *spatial_shape), device="cuda")
 
         for image_patch, _, coords in patches:
             image_patch = torch.from_numpy(image_patch).unsqueeze(0).to("cuda")
-            backbone_pred = self.backbone(image_patch)
-            heads_pred, loss = self.heads(backbone_pred, dataset_idx)
+            backbone_pred = backbone(image_patch)
+            heads_pred, loss = heads(backbone_pred, dataset_idx)
 
             heads_pred = torch.concatenate(heads_pred).squeeze(0)
 

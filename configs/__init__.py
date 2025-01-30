@@ -35,7 +35,7 @@ class _HeadsConfig:
     NAME: str = "TaskHeads"
     COMPILE: bool = True
     PRETRAIN_CHECKPOINTS: Optional[Path] = None
-    IN_CHANNELS: int = 64
+    IN_CHANNELS: int = 32
 
 
 @dataclass
@@ -76,6 +76,7 @@ class _LossConfig:
 @dataclass
 class _TrainConfig:
     EPOCHS: int = 200
+    RESUME: Optional[Path] = None
 
 
 # Global variable to store the instances

@@ -573,14 +573,13 @@ def create_decoders(
     decoders = []
     reversed_f_maps = list(reversed(f_maps))
     for i in range(len(reversed_f_maps) - 1):
-        # if basic_module == DoubleConv and upsample != "deconv":
-        #     in_feature_num = reversed_f_maps[i] + reversed_f_maps[i + 1]
-        # else:
-        #     in_feature_num = reversed_f_maps[i]
+        if basic_module == DoubleConv and upsample != "deconv":
+            in_feature_num = reversed_f_maps[i] + reversed_f_maps[i + 1]
+        else:
+            in_feature_num = reversed_f_maps[i]
 
-        in_feature_num = reversed_f_maps[i] + reversed_f_maps[i + 1]
         out_feature_num = reversed_f_maps[i + 1]
-
+        in_feature_num = reversed_f_maps[i] + reversed_f_maps[i + 1]
         decoder = Decoder(
             in_feature_num,
             out_feature_num,

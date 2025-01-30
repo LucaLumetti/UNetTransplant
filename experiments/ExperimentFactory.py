@@ -1,5 +1,3 @@
-import torch
-
 import experiments
 from experiments.baseExperiment import BaseExperiment
 

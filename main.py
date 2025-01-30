@@ -13,6 +13,7 @@ def main():
         "--experiment",
         help="Name of the experiment, supported: 'PretrainExperiment'.",
         default="PretrainExperiment",
+        # default="TaskVectorExperiment",
     )
     arg_parser.add_argument(
         "--config",

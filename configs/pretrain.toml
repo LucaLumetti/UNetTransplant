@@ -13,6 +13,11 @@ COMPILE = false
 IN_CHANNELS = 1
 # PRETRAIN_CHECKPOINTS = None
 
+[HeadsConfig]
+NAME = "TaskHeads"
+COMPILE = false
+IN_CHANNELS = 64
+
 [OptimizerConfig]
 NAME = "AdamW"
 LR = 0.001
@@ -23,3 +28,4 @@ NAME = "DiceBCELoss"
 
 [TrainConfig]
 EPOCHS = 10000
+RESUME = "/work/grana_maxillo/UNetMerging/checkpoint_175_2025-01-30 09:34:56.502243.pth"

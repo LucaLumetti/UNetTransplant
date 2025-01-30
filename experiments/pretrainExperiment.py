@@ -1,4 +1,5 @@
 from datetime import datetime
+from pathlib import Path
 
 import torch
 import wandb
@@ -24,9 +25,7 @@ class PretrainExperiment(BaseExperiment):
     ):
         super(BaseExperiment, self).__init__()
 
-        self.train_dataset: datasets.ComposedDataset = DatasetFactory.create(
-            split="train"
-        )
+        self.train_dataset = DatasetFactory.create(split="train")
         self.val_dataset = DatasetFactory.create(split="val")
 
         # TODO: is there the correct place?
@@ -37,6 +36,14 @@ class PretrainExperiment(BaseExperiment):
         self.heads = self.setup_heads()
         self.optimizer = self.setup_optimizer()
         self.scheduler = self.setup_scheduler()
+
+        if configs.TrainConfig.RESUME:
+            self.load(
+                Path(configs.TrainConfig.RESUME),
+                load_optimizer=True,
+                load_scheduler=True,
+                load_heads=True,
+            )
 
     def setup_backbone(self):
         model = ModelFactory.create(configs.BackboneConfig)
@@ -100,7 +107,7 @@ class PretrainExperiment(BaseExperiment):
         self.heads.train()
         self.params = list(self.backbone.parameters()) + list(self.heads.parameters())
 
-        for epoch in range(configs.TrainConfig.EPOCHS):
+        for epoch in range(self.starting_epoch, configs.TrainConfig.EPOCHS):
             losses = []
             for i, sample in tqdm(
                 enumerate(self.train_loader),

@@ -136,7 +136,7 @@ class Preprocessor:
         output_folder: Path,
         keep_empty_prob: float = 0.05,
     ):
-        num_cpus = 4
+        num_cpus = 2
         print("Using", num_cpus, "CPUs")
         with multiprocessing.Pool(num_cpus) as pool:
             pool.starmap(
@@ -172,7 +172,9 @@ class Preprocessor:
         # print(f"Processing {image_name}")
         try:
             image: sitk.Image = sitk.ReadImage(self.dataset.folder / sample["image"])
-            label: sitk.Image = sitk.ReadImage(self.dataset.folder / sample["label"])
+            label: sitk.Image = sitk.ReadImage(
+                self.dataset.folder / sample["label"].replace("_0000", "")
+            )
         except RuntimeError as e:
             print(
                 f"Could not read image {sample['image']} or label {sample['label']}\n{e}"
@@ -248,8 +250,8 @@ class Preprocessor:
         image_array: npt.NDArray, label_array: Optional[npt.NDArray] = None
     ):
         for i in range(3):
-            if image_array.shape[3 - i - 1] < 96:
-                pad = 96 - image_array.shape[3 - 1 - i]
+            if image_array.shape[3 - i - 1] % 96 != 0:
+                pad = 96 - (image_array.shape[3 - 1 - i] % 96)
 
                 label_padding_at_dim_i = ((0, 0),) * 3
                 label_padding_at_dim_i = list(label_padding_at_dim_i)

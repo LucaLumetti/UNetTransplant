@@ -1,5 +1,6 @@
 import json
 import math
+from collections import defaultdict
 from pathlib import Path
 from typing import List, Literal, Union
 
@@ -37,7 +38,13 @@ class PreprocessedDataset(LoadableDataset):
             ].items():
                 if class_name in class_names_to_predict:
                     class_to_predict.append(int(class_idx))
-        self.class_to_predict = class_to_predict
+        self.class_to_predict = sorted(class_to_predict)
+        self.class_to_new_label_mapping = {
+            class_idx: idx
+            for idx, class_idx in enumerate(self.class_to_predict, start=1)
+        }
+        self.lamba_vec = lambda x: self.class_to_new_label_mapping.get(x, 0)
+
         print(f"Loaded {len(self.subjects)} subjects from dataset {self.dataset_name}")
 
     def load_dataset_json(
@@ -172,10 +179,10 @@ class PreprocessedDataset(LoadableDataset):
         # image = np.memmap(images_paths[random_patch_idx], shape=(1, 96, 96, 96), dtype="float32", mode="r")
         # label = np.memmap(labels_paths[random_patch_idx], shape=(62, 96, 96, 96), dtype="float32", mode="r")
 
-        label = label * np.isin(label, self.class_to_predict)
-        unique_values = np.sort(np.unique(label))
-        value_to_index = {value: idx for idx, value in enumerate(unique_values)}
-        label = np.vectorize(value_to_index.get)(label)
+        # label = label * np.isin(label, self.class_to_predict)
+        # unique_values = np.sort(np.unique(label))
+        # value_to_index = {value: idx for idx, value in enumerate(unique_values)}
+        label = np.vectorize(self.lamba_vec)(label)
 
         return image, label, DATASET_IDX[self.dataset_name]
 

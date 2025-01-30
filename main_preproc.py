@@ -8,7 +8,7 @@ from preprocessing.raw_dataset import RawDataset
 
 if __name__ == "__main__":
     is_debug = "debugpy" in sys.modules
-    configs.initialize_config("configs/default_config.toml")
+    configs.initialize_config("configs/default.toml")
 
     # read all the folder in datasets/
     datasets_path = list(configs.DataConfig.DATA_RAW_PATH.glob("*"))
@@ -29,4 +29,4 @@ if __name__ == "__main__":
         # dataset_stats = DatasetStats(dataset)
         print(f"Dataset {dataset.name}.")
         preprocessor = Preprocessor(dataset)
-        preprocessor.run(configs.DataConfig.DATA_PREPROCESSED_PATH)
+        preprocessor.run_parallel(configs.DataConfig.DATA_PREPROCESSED_PATH)

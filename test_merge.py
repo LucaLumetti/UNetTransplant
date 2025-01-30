@@ -5,104 +5,57 @@ import torch
 
 import configs
 from datasets import DatasetFactory
+from experiments.baseExperiment import BaseExperiment
 from models.modelFactory import ModelFactory
+from taskvectors.TaskVector import TaskVector
+from taskvectors.TiesMerging import TiesMerging
 
 
 def main():
-    pretrain_backbone = ModelFactory.create(configs.BackboneConfig)
-    backbone_liver, head_liver = ModelFactory.create_from_checkpoint(
-        configs.LiverHeadConfig.PRETRAIN_CHECKPOINTS
+    task_vector_lowerjaw = TaskVector(
+        task_name="Lower Jaw",
+        checkpoints="/work/grana_maxillo/UNetMerging/checkpoints/TaskVector_/work/grana_maxillo/UNetMerging/configs/taskvector_tf_mandible.toml/epoch0050_2025-01-28 00:37:57.256466_task_vector.pth",
+        alphas=[1],
     )
-    backbone_kidney, head_kidney = ModelFactory.create_from_checkpoint(
-        configs.KidneyHeadConfig.PRETRAIN_CHECKPOINTS
+    task_vector_lowerjaw.create_params_histogram()
+
+    task_vector_pharynx = TaskVector(
+        task_name="Pharynx",
+        checkpoints="/work/grana_maxillo/UNetMerging/checkpoints/TaskVector_/work/grana_maxillo/UNetMerging/configs/taskvector_tf_pharynx.toml/epoch0050_2025-01-28 00:10:50.931316_task_vector.pth",
+        alphas=[1],
     )
+    task_vector_pharynx.create_params_histogram()
 
-    for model in [
-        pretrain_backbone,
-        backbone_liver,
-        head_liver,
-        backbone_kidney,
-        head_kidney,
-    ]:
-        model.cuda()
-        model.eval()
+    task_vector_combined = task_vector_pharynx + task_vector_lowerjaw
 
-    # pretrained_backbone_params = pretrain_backbone.state_dict()
-    # liver_backbone_params = backbone_liver.state_dict()
-    # kidney_backbone_params = backbone_kidney.state_dict()
+    ties_vector_merged = TiesMerging(task_vector_combined)()
 
-    # liver_head_params = head_liver.state_dict()
-    # kidney_head_params = head_kidney.state_dict()
+    print(task_vector_lowerjaw.params[0])
+    print(task_vector_pharynx.params[0])
+    print(ties_vector_merged.params[0])
 
-    train_dataset = DatasetFactory.create()
-    train_loader = train_dataset.get_dataloader()
-    task = train_dataset.get_tasks()
-    with torch.no_grad():
-        for i, sample in enumerate(train_loader):
-            image = sample[0].cuda()
-            label = sample[1].cuda()
+    dataset = DatasetFactory.create(split="val")
 
-            if 1 not in torch.unique(label) or 2 not in torch.unique(label):
-                continue
+    backbone, heads = ties_vector_merged.get_backbone_and_heads(
+        tasks=dataset.get_tasks()
+    )
+    backbone.eval()
+    heads.eval()
 
-            pretrained_backbone_out = pretrain_backbone(image)
-            liver_backbone_out = backbone_liver(image)
-            kidney_backbone_out = backbone_kidney(image)
+    x, y, i = dataset[0]
+    i = torch.tensor([i]).cuda()
+    sample_input = torch.from_numpy(x).unsqueeze(0).cuda()
+    backbone, heads = backbone.cuda(), heads.cuda()
 
-            backbones = {
-                "pretrain_backbone": pretrained_backbone_out,
-                "liver_backbone": liver_backbone_out,
-                "kidney_backbone": kidney_backbone_out,
-            }
-
-            heads = {"liver_head": head_liver, "kidney_head": head_kidney}
-
-            maks = {
-                "liver_head": [1, 2, 3],
-                "kidney_head": [0, 2, 3],
-            }
-
-            debug_path = "debug/merge_test/"
-            os.makedirs(debug_path, exist_ok=True)
-
-            np.save(f"{debug_path}image.npy", image.cpu().detach().numpy())
-            np.save(f"{debug_path}label.npy", label.cpu().detach().numpy())
-
-            for backbone_name, backbone_out in backbones.items():
-                for head_name, head in heads.items():
-                    print(f"backbone: {backbone_name}, head: {head_name}")
-                    head_out = head(backbone_out)
-                    # head_out = torch.sigmoid(head_out)
-
-                    mask = maks[head_name]
-                    head_out[:, mask, :, :, :] = 0
-
-                    head_out = torch.concatenate(
-                        [
-                            torch.zeros(
-                                (
-                                    head_out.shape[0],
-                                    1,
-                                    head_out.shape[2],
-                                    head_out.shape[3],
-                                    head_out.shape[4],
-                                ),
-                                device=head_out.device,
-                            ),
-                            head_out,
-                        ],
-                        axis=1,
-                    )
-                    head_out = head_out.argmax(dim=1)
-
-                    name = f"{backbone_name}__{head_name}"
-                    np.save(f"{debug_path}{name}.npy", head_out.cpu().detach().numpy())
-
-            continue
-
-        # liver_head_out = head_liver(liver_backbone_out)
-        # kidney_head_out = head_kidney(kidney_backbone_out)
+    out = BaseExperiment.functional_predict(
+        backbone=backbone, heads=heads, image_array=x, dataset_idx=i
+    )
+    np.save("debug/merge_image.npy", x[0])
+    np.save("debug/merge_label.npy", y[0])
+    np.save("debug/merge_pred.npy", out.cpu().detach().numpy())
+    pass
 
 
 if __name__ == "__main__":
+    configs.initialize_config("/work/grana_maxillo/UNetMerging/configs/merge_test.toml")
     main()

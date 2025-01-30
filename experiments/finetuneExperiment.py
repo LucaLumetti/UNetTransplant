@@ -40,13 +40,13 @@ class FinetuneExperiment(BaseExperiment):
         self.scheduler = self.setup_scheduler()
 
     def setup_backbone(self):
-        model = ModelFactory.create(configs.BackboneConfig)
+        self.backbone = ModelFactory.create(configs.BackboneConfig)
         if configs.BackboneConfig.PRETRAIN_CHECKPOINTS is not None:
             self.load(
                 checkpoint_path=configs.BackboneConfig.PRETRAIN_CHECKPOINTS,
             )
 
-        return model
+        return self.backbone
 
     def setup_heads(self):
         model = ModelFactory.create(
@@ -71,6 +71,9 @@ class FinetuneExperiment(BaseExperiment):
                 # "weight_decay": configs.OptimizerConfig.WEIGHT_DECAY,
             },
         ]
+        self.params_to_clip = list(self.backbone.parameters()) + list(
+            self.heads.parameters()
+        )
         optim = OptimizerFactory.create(parameters_to_optimize)
         return optim
 
@@ -109,27 +112,34 @@ class FinetuneExperiment(BaseExperiment):
                 self.optimizer.zero_grad()
                 loss.backward()
 
-                parameters = list(self.backbone.parameters()) + list(
-                    self.heads.parameters()
-                )
-                torch.nn.utils.clip_grad_norm_(parameters, 1.0)
+                torch.nn.utils.clip_grad_norm_(self.params_to_clip, 1.0)
                 self.optimizer.step()
 
                 wandb.log(
                     {
                         "Train/Loss": loss.item(),
-                        "Train/lr_0": self.optimizer.param_groups[0]["lr"],
-                        "Train/lr_1": self.optimizer.param_groups[1]["lr"],
-                        "Train/wd_0": self.optimizer.param_groups[0]["weight_decay"],
-                        "Train/wd_1": self.optimizer.param_groups[1]["weight_decay"],
+                        # "Train/lr_0": self.optimizer.param_groups[0]["lr"],
+                        # "Train/lr_1": self.optimizer.param_groups[1]["lr"],
+                        # "Train/wd_0": self.optimizer.param_groups[0]["weight_decay"],
+                        # "Train/wd_1": self.optimizer.param_groups[1]["weight_decay"],
                         "train/Delta_Tetha": self.compute_task_vector_norm(),
                     }
                 )
+                # self.debug_batch(image, label, heads_pred[0], folder_name=f"batch_{i}_{loss.item()}")
 
             self.scheduler.step()
             # torch.cuda.empty_cache()
 
             if epoch % 10 == 0:
+                try:
+                    self.debug_batch(
+                        image,
+                        label,
+                        heads_pred[0],
+                        folder_name=f"batch_{i}_{loss.item()}",
+                    )
+                except Exception as e:
+                    print(e)
                 self.evaluate()
                 self.backbone.train()
                 self.heads.train()
