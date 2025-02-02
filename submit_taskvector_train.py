@@ -7,6 +7,8 @@ executor = submitit.AutoExecutor(folder="slurm_logs")
 
 executor.update_parameters(
     timeout_min=12 * 60,
+    # slurm_partition="boost_usr_prod",
+    # timeout_min=4 * 60,
     slurm_partition="boost_usr_prod",
     slurm_account="grana_maxillo",
     cpus_per_task=4,
@@ -15,6 +17,7 @@ executor.update_parameters(
     slurm_mem="32G",
     slurm_gres="gpu:1",
     slurm_constraint="gpu_A40_48G",
+    # slurm_constraint="gpu_RTX6000_24G|gpu_RTXA5000_24G|gpu_A40_48G",
 )
 
 
@@ -25,10 +28,13 @@ def run_job(config_path):
         [
             "python",
             "main.py",
+            "--experiment",
+            # "TaskVectorExperiment",
+            "PretrainExperiment",
             "--config",
             config_path,
             "--name",
-            f"TaskVector_{config_path}",
+            f"WeightedLoss_Pretrain_{config_path}",
         ]
     )
 
@@ -36,10 +42,11 @@ def run_job(config_path):
 configs_to_run = [
     # "/work/grana_maxillo/UNetMerging/configs/taskvector_tf_pharynx.toml",
     # "/work/grana_maxillo/UNetMerging/configs/taskvector_tf_mandible.toml",
+    # "/work/grana_maxillo/UNetMerging/configs/taskvector_tf_lriac.toml",
     "/work/grana_maxillo/UNetMerging/configs/pretrain.toml",
 ]
 
 for config_path in configs_to_run:
-    executor.update_parameters(name="unet_pretrain")
+    executor.update_parameters(name=config_path)
     job = executor.submit(run_job, config_path)
     print(f"Submitted job {job.job_id}")

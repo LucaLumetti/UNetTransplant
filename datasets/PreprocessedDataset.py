@@ -6,6 +6,7 @@ from typing import List, Literal, Union
 
 import numpy as np
 import torch
+import torchio as tio
 
 import configs
 from custom_types import Split
@@ -17,6 +18,16 @@ from preprocessing.dataset_class_mapping import DATASET_IDX, DATASET_ORIGINAL_LA
 class PreprocessedDataset(LoadableDataset):
     def __init__(self, split: Split, dataset_name: str):
         super().__init__()
+        # random noise, random gamma, random motion, random ghosting, random affine
+        self.augmentations = tio.Compose(
+            [
+                tio.RandomNoise(),
+                tio.RandomGamma(),
+                tio.RandomMotion(),
+                tio.RandomGhosting(),
+                tio.RandomAffine(),
+            ]
+        )
 
         self.dataset_name = dataset_name
         if isinstance(split, str):
@@ -38,14 +49,21 @@ class PreprocessedDataset(LoadableDataset):
             ].items():
                 if class_name in class_names_to_predict:
                     class_to_predict.append(int(class_idx))
-        self.class_to_predict = sorted(class_to_predict)
+        self.lamdba_vecpredict = sorted(class_to_predict)
         self.class_to_new_label_mapping = {
-            class_idx: idx
-            for idx, class_idx in enumerate(self.class_to_predict, start=1)
+            class_idx: idx for idx, class_idx in enumerate(class_to_predict, start=1)
         }
-        self.lamba_vec = lambda x: self.class_to_new_label_mapping.get(x, 0)
+        self.lambda_vec = lambda x: self.class_to_new_label_mapping.get(x, 0)
 
         print(f"Loaded {len(self.subjects)} subjects from dataset {self.dataset_name}")
+
+    def augment(self, image, label):
+        subject = tio.Subject(
+            image=tio.ScalarImage(tensor=image),
+            label=tio.LabelMap(tensor=label),
+        )
+        subject = self.augmentations(subject)
+        return subject["image"][tio.DATA], subject["label"][tio.DATA]
 
     def load_dataset_json(
         self,
@@ -176,14 +194,9 @@ class PreprocessedDataset(LoadableDataset):
             if patient_folder.exists():
                 shutil.rmtree(patient_folder)
             return self.__getitem__(idx + 1)
-        # image = np.memmap(images_paths[random_patch_idx], shape=(1, 96, 96, 96), dtype="float32", mode="r")
-        # label = np.memmap(labels_paths[random_patch_idx], shape=(62, 96, 96, 96), dtype="float32", mode="r")
 
-        # label = label * np.isin(label, self.class_to_predict)
-        # unique_values = np.sort(np.unique(label))
-        # value_to_index = {value: idx for idx, value in enumerate(unique_values)}
-        label = np.vectorize(self.lamba_vec)(label)
-
+        label = np.vectorize(self.lambda_vec)(label)
+        image, label = self.augment(image, label)
         return image, label, DATASET_IDX[self.dataset_name]
 
     def get_tasks(

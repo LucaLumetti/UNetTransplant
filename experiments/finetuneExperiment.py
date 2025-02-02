@@ -107,6 +107,9 @@ class FinetuneExperiment(BaseExperiment):
                     continue
 
                 backbone_pred = self.backbone(image)
+                if configs.BackboneConfig.N_EPOCHS_FREEZE > epoch:
+                    backbone_pred = backbone_pred.detach()
+
                 heads_pred, loss = self.heads(backbone_pred, dataset_indices, label)
 
                 self.optimizer.zero_grad()

@@ -25,6 +25,7 @@ class _BackboneConfig:
     COMPILE: bool = True
     IN_CHANNELS: int = 1
     PRETRAIN_CHECKPOINTS: Optional[Path] = None
+    N_EPOCHS_FREEZE: int = 5
     # PRETRAIN_CHECKPOINTS: Optional[Path] = Path(
     #     "/work/grana_maxillo/UNetMerging/checkpoints/checkpoint_190_2025-01-19 04:55:49.994931.pth"
     # )

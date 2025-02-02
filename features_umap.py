@@ -67,7 +67,7 @@ def main():
 
         for image_patch, _, coords in patches:
             image_patch = torch.from_numpy(image_patch).unsqueeze(0).to(device)
-            with torch.no_grad():
+            with torch.inference_mode():
                 backbone_pred = backbone(image_patch).squeeze(0)
             bb_pred[
                 :,

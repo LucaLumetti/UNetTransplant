@@ -62,8 +62,10 @@ class TaskHeads(nn.Module):
             grouped_y = {k: v for k, v in grouped_y.items() if v.shape[0] > 0}
         predictions = []
         losses = []
+        loss_weights = []
         for i, task in enumerate(self.tasks):
             i = task.dataset_idx
+            num_classes = task.num_output_channels
             if i not in grouped_x.keys():
                 continue
             task_x = grouped_x[i]
@@ -74,13 +76,17 @@ class TaskHeads(nn.Module):
             if task_y is not None:
                 loss = self.loss_fn(prediction, task_y)
                 losses.append(loss)
+                loss_weights.append(num_classes)
             predictions.append(prediction)
 
         # predictions = torch.cat(predictions)
         if len(losses) == 0:
             losses = torch.tensor(0)
         else:
-            losses = torch.stack(losses).mean()
+            # losses = torch.stack(losses).mean()
+            losses = torch.stack(losses)
+            loss_weights = torch.tensor(loss_weights, device=losses.device).float()
+            losses = (losses * loss_weights).sum() / loss_weights.sum()
         return predictions, losses
 
 

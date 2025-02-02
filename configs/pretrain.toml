@@ -28,4 +28,4 @@ NAME = "DiceBCELoss"
 
 [TrainConfig]
 EPOCHS = 10000
-RESUME = "/work/grana_maxillo/UNetMerging/checkpoint_175_2025-01-30 09:34:56.502243.pth"
+RESUME = "/work/grana_maxillo/UNetMerging/checkpoint_275_2025-01-31 21:36:04.030220.pth"
