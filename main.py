@@ -1,4 +1,5 @@
 import argparse
+import sys
 from pathlib import Path
 
 import wandb
@@ -12,14 +13,14 @@ def main():
     arg_parser.add_argument(
         "--experiment",
         help="Name of the experiment, supported: 'PretrainExperiment'.",
-        default="PretrainExperiment",
+        # default="PretrainExperiment",
         # default="TaskVectorExperiment",
     )
     arg_parser.add_argument(
         "--config",
         help="Path to the configuration file.",
         # default="configs/taskvector_tf_mandible.toml",
-        default="/work/grana_maxillo/UNetMerging/configs/pretrain.toml",
+        # default="/work/grana_maxillo/UNetMerging/configs/pretrain.toml",
     )
     arg_parser.add_argument(
         "--name",
@@ -34,18 +35,26 @@ def main():
     if args.name is None:
         args.name = f"{args.experiment}_{wandb.util.generate_id()}"
 
+    wandb_mode = "online"
+
+    if "debugpy" in sys.modules:
+        print("Setting batch size to 1 for debugging.")
+        print("Disabling wandb.")
+        configs.DataConfig.BATCH_SIZE = 1
+        wandb_mode = "disabled"
+
     wandb.init(
         project="UNetMerging",
         name=args.name,
         entity="maxillo",
-        mode="online",
+        mode=wandb_mode,
         config=configs.generate_config_json(),
     )
 
     experiment = ExperimentFactory.create(name=args.experiment)
 
     experiment.train()
-    # experiment.evaluate()
+    experiment.evaluate()
 
 
 def find_config_path(config: str) -> Path:
