@@ -6,11 +6,13 @@ from typing import Optional, Union
 import numpy as np
 import numpy.typing as npt
 import torch
+import torchio as tio
 import wandb
 from tqdm import tqdm
 
 import configs
 from datasets import DatasetFactory
+from datasets.PatchDataset import PatchDataset
 from experiments import BaseExperiment
 from losses import LossFactory
 from models import ModelFactory
@@ -27,12 +29,14 @@ class FinetuneExperiment(BaseExperiment):
     def __init__(
         self,
     ):
-        self.train_dataset = DatasetFactory.create(split="train")
-        self.val_dataset = DatasetFactory.create(split="val")
+        # self.train_dataset = DatasetFactory.create(split="train")
+        # self.val_dataset = DatasetFactory.create(split="val")
+        self.train_dataset = PatchDataset(split="train", dataset_name="ToothFairy2")
+        self.val_dataset = PatchDataset(split="val", dataset_name="ToothFairy2")
 
         # TODO: is there the correct place?
         self.train_loader = self.train_dataset.get_dataloader()
-        self.val_loader = self.val_dataset.get_dataloader(batch_size=1, num_workers=0)
+        # self.val_loader = self.val_dataset.get_dataloader(batch_size=1, num_workers=0)
 
         self.backbone = self.setup_backbone()
         self.heads = self.setup_heads()
@@ -99,12 +103,15 @@ class FinetuneExperiment(BaseExperiment):
                 desc=f"Epoch {epoch}",
                 total=len(self.train_loader),
             ):
-                image = sample[0].to(device)
-                label = sample[1].to(device)
-                dataset_indices = sample[2].to(device)
+                image = sample["images"][tio.DATA]
+                label = sample["labels"][tio.DATA]
+                dataset_indices = sample["dataset_idx"]
 
-                if label.max() == 0:
-                    continue
+                image, label = image.to(device), label.to(device)
+
+                # if label.max() == 0:
+                #     break
+                #     continue
 
                 backbone_pred = self.backbone(image)
                 if configs.BackboneConfig.N_EPOCHS_FREEZE > epoch:
@@ -121,17 +128,15 @@ class FinetuneExperiment(BaseExperiment):
                 wandb.log(
                     {
                         "Train/Loss": loss.item(),
-                        # "Train/lr_0": self.optimizer.param_groups[0]["lr"],
-                        # "Train/lr_1": self.optimizer.param_groups[1]["lr"],
+                        "Train/lr_backbone": self.optimizer.param_groups[0]["lr"],
+                        "Train/lr_heads": self.optimizer.param_groups[1]["lr"],
                         # "Train/wd_0": self.optimizer.param_groups[0]["weight_decay"],
                         # "Train/wd_1": self.optimizer.param_groups[1]["weight_decay"],
                         "train/Delta_Tetha": self.compute_task_vector_norm(),
                     }
                 )
-                # self.debug_batch(image, label, heads_pred[0], folder_name=f"batch_{i}_{loss.item()}")
 
             self.scheduler.step()
-            # torch.cuda.empty_cache()
 
             if epoch % 10 == 0:
                 try:

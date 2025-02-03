@@ -62,10 +62,6 @@ class TaskVectorExperiment(FinetuneExperiment):
         norm = torch.norm(flatten_params)
         return norm
 
-    def evaluate(self):
-        super().evaluate()
-        print(f"Task vector norm: {self.compute_task_vector_norm()}")
-
     def save(self, epoch):
         now = datetime.now()
         if not os.path.exists(f"checkpoints/{wandb.run.name}"):
@@ -75,7 +71,8 @@ class TaskVectorExperiment(FinetuneExperiment):
         )
         torch.save(
             {
-                "params_state_dict": self.backbone.params.state_dict(),
+                "pretrain_state_dict": self.backbone.params0.state_dict(),
+                "delta_state_dict": self.backbone.params.state_dict(),
                 "heads_state_dict": self.heads.state_dict(),
             },
             checkpoint_filename,

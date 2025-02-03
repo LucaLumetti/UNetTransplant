@@ -65,9 +65,11 @@ class TaskVector:
 
     def get_params_from_checkpoints(self, checkpoints: str):
         ckpt = torch.load(checkpoints)
-        backbone_params = ckpt["params_state_dict"]
+        # TODO: fix params->delta and params0->pretrain
+        delta_params = ckpt["delta_state_dict"]
         self._head_params = [ckpt["heads_state_dict"]]
-        param_list = torch.nn.ParameterList(backbone_params.values())
+        self._backbone_params = ckpt["pretrain_state_dict"]
+        param_list = torch.nn.ParameterList(delta_params.values())
 
         return param_list
 
@@ -89,9 +91,7 @@ class TaskVector:
 
     def get_backbone_and_heads(self, tasks):
         backbone = ModelFactory.create(configs.BackboneConfig)
-        params0_state_dict = torch.load(configs.BackboneConfig.PRETRAIN_CHECKPOINTS)[
-            "model_state_dict"
-        ]
+        params0_state_dict = self._backbone_params
         params0_state_dict = {
             k.replace("_orig_mod.", ""): v
             for k, v in params0_state_dict.items()
