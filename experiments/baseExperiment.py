@@ -159,6 +159,12 @@ class BaseExperiment:
                 # ]
                 try:
                     label = subject["labels"][tio.DATA].squeeze()
+                    np.save(f"debug/label_{i}.npy", label.detach().cpu().numpy())
+                    np.save(f"debug/pred_{i}.npy", pred.detach().cpu().numpy())
+                    np.save(
+                        f"debug/image_{i}.npy",
+                        subject["images"][tio.DATA].detach().cpu().numpy(),
+                    )
                     metric_values = self.metrics.compute(pred, label)
                 except Exception as e:
                     print("Failed to compute metrics: ", e)

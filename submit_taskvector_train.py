@@ -14,7 +14,7 @@ executor.update_parameters(
     cpus_per_task=4,
     tasks_per_node=1,
     nodes=1,
-    slurm_mem="32G",
+    slurm_mem="64G",
     slurm_gres="gpu:1",
     # slurm_constraint="gpu_A40_48G",
     slurm_constraint="gpu_RTX6000_24G|gpu_RTXA5000_24G|gpu_A40_48G",
@@ -41,8 +41,11 @@ def run_job(config_path):
 
 configs_to_run = [
     "/work/grana_maxillo/UNetMerging/configs/taskvector_tf_mandible.toml",
-    # "/work/grana_maxillo/UNetMerging/configs/taskvector_tf_canine.toml",
-    # "/work/grana_maxillo/UNetMerging/configs/taskvector_tf_lowerteeth.toml",
+    "/work/grana_maxillo/UNetMerging/configs/taskvector_tf_lriac.toml",
+    "/work/grana_maxillo/UNetMerging/configs/taskvector_tf_pharynx.toml",
+    "/work/grana_maxillo/UNetMerging/configs/finetune_tf_mandible.toml",
+    "/work/grana_maxillo/UNetMerging/configs/finetune_tf_lriac.toml",
+    "/work/grana_maxillo/UNetMerging/configs/finetune_tf_pharynx.toml",
     # "/work/grana_maxillo/UNetMerging/configs/pretrain.toml",
 ]
 

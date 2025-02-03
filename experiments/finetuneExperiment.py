@@ -107,11 +107,10 @@ class FinetuneExperiment(BaseExperiment):
                 label = sample["labels"][tio.DATA]
                 dataset_indices = sample["dataset_idx"]
 
-                image, label = image.to(device), label.to(device)
-
-                # if label.max() == 0:
+                # if i > 20:
                 #     break
-                #     continue
+
+                image, label = image.to(device), label.to(device)
 
                 backbone_pred = self.backbone(image)
                 if configs.BackboneConfig.N_EPOCHS_FREEZE > epoch:

@@ -162,7 +162,7 @@ class PatchDataset(tio.SubjectsDataset):
         label_probs = {}
         for i in range(1, self.num_output_channels):
             label_probs[i] = 1
-        label_probs[0] = sum(label_probs.values()) * 0.1
+        label_probs[0] = sum(label_probs.values()) / 3  # background 25%
 
         patch_sampler = tio.data.LabelSampler(
             patch_size=(96, 96, 96),
@@ -170,7 +170,7 @@ class PatchDataset(tio.SubjectsDataset):
         )
         patches_queue = tio.Queue(
             subjects_dataset=self,
-            max_length=30,
+            max_length=15,
             samples_per_volume=3,
             sampler=patch_sampler,
             num_workers=num_workers,
