@@ -196,7 +196,8 @@ class PreprocessedDataset(LoadableDataset):
             return self.__getitem__(idx + 1)
 
         label = np.vectorize(self.lambda_vec)(label)
-        image, label = self.augment(image, label)
+        if self.split == "train":
+            image, label = self.augment(image, label)
         return image, label, DATASET_IDX[self.dataset_name]
 
     def get_tasks(

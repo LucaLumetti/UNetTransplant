@@ -17,6 +17,8 @@ class _DataConfig:
         "/work/grana_maxillo/UNetMergingData/preprocessed_data"
     )
     DATA_RAW_PATH: Path = Path("/work/grana_maxillo/UNetMergingData/raw_data")
+    PATCH_SIZE: List[int] = field(default_factory=lambda: [96, 96, 96])
+    PATCH_OVERLAP: float = 0.0
 
 
 @dataclass

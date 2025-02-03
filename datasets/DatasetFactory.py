@@ -3,15 +3,15 @@ from typing import Literal, Optional, Union
 
 import configs
 import datasets
+from custom_types import Split
 from datasets import ComposedDataset
 from datasets.LoadableDataset import LoadableDataset
+from datasets.PatchDataset import PatchDataset
 
 
 class DatasetFactory:
     @staticmethod
-    def create(
-        split: Literal["train", "val", "test"]
-    ) -> Union[LoadableDataset, ComposedDataset]:
+    def create(split: Split) -> Union[LoadableDataset, ComposedDataset, PatchDataset]:
         name = configs.DataConfig.NAME
         if name in datasets.__dict__:
             model_class = getattr(datasets, name)
