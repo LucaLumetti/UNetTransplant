@@ -41,6 +41,7 @@ def main():
         print("Setting batch size to 1 for debugging.")
         print("Disabling wandb.")
         configs.DataConfig.BATCH_SIZE = 1
+        configs.DataConfig.NUM_WORKERS = 1
         wandb_mode = "disabled"
 
     wandb.init(

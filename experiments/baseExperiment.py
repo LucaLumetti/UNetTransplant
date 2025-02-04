@@ -146,9 +146,9 @@ class BaseExperiment:
             metrics = defaultdict(list)
 
             for i, subject in tqdm(
-                enumerate(self.val_dataset),
+                enumerate(self.val_dataset.dataset),
                 desc=f"Val",
-                total=len(self.val_dataset),
+                total=len(self.val_dataset.dataset),
             ):
                 pred = self.predict(subject)
 

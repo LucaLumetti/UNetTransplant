@@ -15,7 +15,7 @@ from models.taskheads import Task
 from preprocessing.dataset_class_mapping import DATASET_IDX, DATASET_ORIGINAL_LABELS
 
 
-class PatchDataset(tio.SubjectsDataset):
+class PatchDataset:
     def __init__(self, split: Split, dataset_name: str):
         class_to_new_label_mapping = self.get_label_remap_dict(dataset_name)
         preprocessing = [
@@ -29,7 +29,7 @@ class PatchDataset(tio.SubjectsDataset):
                 tio.RandomGamma(p=0.2),
                 # tio.RandomMotion(p=0.05),
                 # tio.RandomGhosting(p=0.05),
-                tio.RandomAffine(p=0.1),
+                # tio.RandomAffine(p=0.1),
             ]
 
         transforms = tio.Compose(preprocessing + augmentations)
@@ -45,7 +45,7 @@ class PatchDataset(tio.SubjectsDataset):
         if configs.DataConfig.INCLUDE_ONLY_CLASSES is not None:
             self.num_output_channels = len(configs.DataConfig.INCLUDE_ONLY_CLASSES) + 1
 
-        super().__init__(self.subjects, transform=transforms)
+        self.dataset = tio.SubjectsDataset(self.subjects, transform=transforms)
 
         print(f"Loaded {len(self.subjects)} subjects from dataset {self.dataset_name}")
 
@@ -169,7 +169,7 @@ class PatchDataset(tio.SubjectsDataset):
             label_probabilities=label_probs,
         )
         patches_queue = tio.Queue(
-            subjects_dataset=self,
+            subjects_dataset=self.dataset,
             max_length=15,
             samples_per_volume=3,
             sampler=patch_sampler,
@@ -190,6 +190,7 @@ class PatchDataset(tio.SubjectsDataset):
         batch_size: int = None,
         num_workers: int = None,
     ) -> torch.utils.data.DataLoader:
+        raise NotImplementedError("Val dataloader not implemented yet.")
         if batch_size is None:
             batch_size = 1
         if num_workers is None:

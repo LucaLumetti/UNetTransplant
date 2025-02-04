@@ -107,9 +107,6 @@ class FinetuneExperiment(BaseExperiment):
                 label = sample["labels"][tio.DATA]
                 dataset_indices = sample["dataset_idx"]
 
-                # if i > 20:
-                #     break
-
                 image, label = image.to(device), label.to(device)
 
                 backbone_pred = self.backbone(image)
@@ -134,10 +131,13 @@ class FinetuneExperiment(BaseExperiment):
                         "train/Delta_Tetha": self.compute_task_vector_norm(),
                     }
                 )
+                del image, label, dataset_indices, backbone_pred, heads_pred, loss
+                torch.cuda.empty_cache()
+                del sample
 
             self.scheduler.step()
 
-            if epoch % 10 == 0:
+            if epoch % 2 == 0:
                 try:
                     self.debug_batch(
                         image,
