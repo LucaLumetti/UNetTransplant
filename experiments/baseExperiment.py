@@ -198,7 +198,7 @@ class BaseExperiment:
         patch_sampler = tio.inference.GridSampler(
             subject,
             patch_size=(96, 96, 96),
-            patch_overlap=0,
+            patch_overlap=20,
         )
 
         pred_aggregator = tio.inference.GridAggregator(patch_sampler)
