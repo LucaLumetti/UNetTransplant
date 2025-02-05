@@ -1,3 +1,4 @@
+import gc
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
@@ -132,11 +133,10 @@ class FinetuneExperiment(BaseExperiment):
                     }
                 )
                 del image, label, dataset_indices, backbone_pred, heads_pred, loss
-                torch.cuda.empty_cache()
                 del sample
 
             self.scheduler.step()
-
+            gc.collect()
             if epoch % 2 == 0:
                 try:
                     self.debug_batch(
@@ -151,5 +151,3 @@ class FinetuneExperiment(BaseExperiment):
                 self.backbone.train()
                 self.heads.train()
                 self.save(epoch)
-
-            # torch.cuda.empty_cache()

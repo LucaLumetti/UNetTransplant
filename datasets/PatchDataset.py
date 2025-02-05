@@ -29,7 +29,7 @@ class PatchDataset:
                 tio.RandomGamma(p=0.2),
                 # tio.RandomMotion(p=0.05),
                 # tio.RandomGhosting(p=0.05),
-                # tio.RandomAffine(p=0.1),
+                tio.RandomAffine(p=0.1),
             ]
 
         transforms = tio.Compose(preprocessing + augmentations)
@@ -42,7 +42,10 @@ class PatchDataset:
         self.num_output_channels = (
             len(DATASET_ORIGINAL_LABELS[self.dataset_name].keys()) + 1
         )
-        if configs.DataConfig.INCLUDE_ONLY_CLASSES is not None:
+        if (
+            configs.DataConfig.INCLUDE_ONLY_CLASSES is not None
+            and len(configs.DataConfig.INCLUDE_ONLY_CLASSES) > 0
+        ):
             self.num_output_channels = len(configs.DataConfig.INCLUDE_ONLY_CLASSES) + 1
 
         self.dataset = tio.SubjectsDataset(self.subjects, transform=transforms)
@@ -52,7 +55,10 @@ class PatchDataset:
     def get_label_remap_dict(self, dataset_name):
         class_names_to_predict = configs.DataConfig.INCLUDE_ONLY_CLASSES
         if class_names_to_predict is None or len(class_names_to_predict) == 0:
-            class_to_predict = range(len(DATASET_ORIGINAL_LABELS[dataset_name].keys()))
+            class_to_predict = []
+            for class_idx, class_name in DATASET_ORIGINAL_LABELS[dataset_name].items():
+                class_to_predict.append(int(class_idx))
+
         else:
             class_to_predict = []
             for class_idx, class_name in DATASET_ORIGINAL_LABELS[dataset_name].items():
@@ -118,6 +124,7 @@ class PatchDataset:
                     images=tio.ScalarImage(path=images_path),
                     labels=tio.LabelMap(path=labels_path),
                     dataset_idx=torch.tensor(DATASET_IDX[self.dataset_name]),
+                    filename=images_path.name,
                 )
             )
 

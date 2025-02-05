@@ -1,13 +1,16 @@
+import gc
 from datetime import datetime
 from pathlib import Path
 
 import torch
+import torchio as tio
 import wandb
 from tqdm import tqdm
 
 import configs
 import datasets
 from datasets import DatasetFactory
+from datasets.PatchDataset import PatchDataset
 from experiments import BaseExperiment
 from losses import LossFactory
 from models import ModelFactory
@@ -25,17 +28,21 @@ class PretrainExperiment(BaseExperiment):
     ):
         super(BaseExperiment, self).__init__()
 
-        self.train_dataset = DatasetFactory.create(split="train")
-        self.val_dataset = DatasetFactory.create(split="val")
+        # self.train_dataset = DatasetFactory.create(split="train")
+        # self.val_dataset = DatasetFactory.create(split="val")
+        self.train_dataset = PatchDataset(split="train", dataset_name="ZhimingCui")
+        self.val_dataset = PatchDataset(split="val", dataset_name="ZhimingCui")
 
         # TODO: is there the correct place?
         self.train_loader = self.train_dataset.get_dataloader()
-        self.val_loader = self.val_dataset.get_dataloader(batch_size=1, num_workers=0)
+        # self.val_loader = self.val_dataset.get_dataloader(batch_size=1, num_workers=0)
 
         self.backbone = self.setup_backbone()
         self.heads = self.setup_heads()
         self.optimizer = self.setup_optimizer()
         self.scheduler = self.setup_scheduler()
+
+        self.starting_epoch = 0
 
         if configs.TrainConfig.RESUME:
             self.load(
@@ -114,12 +121,11 @@ class PretrainExperiment(BaseExperiment):
                 desc=f"Epoch {epoch}",
                 total=len(self.train_loader),
             ):
-                image = sample[0].to(device)
-                label = sample[1].to(device)
-                dataset_indices = sample[2].to(device)
+                image = sample["images"][tio.DATA]
+                label = sample["labels"][tio.DATA]
+                dataset_indices = sample["dataset_idx"]
 
-                if label.max() == 0:
-                    continue
+                image, label = image.to(device), label.to(device)
 
                 backbone_pred = self.backbone(image)
                 heads_pred, loss = self.heads(backbone_pred, dataset_indices, label)
@@ -131,6 +137,7 @@ class PretrainExperiment(BaseExperiment):
                 self.optimizer.step()
 
                 losses.append(loss.item())
+                gc.collect()
 
             mean_loss = sum(losses) / len(losses)
             tqdm.write(f"Loss: {mean_loss}")
@@ -143,8 +150,8 @@ class PretrainExperiment(BaseExperiment):
 
             # torch.cuda.empty_cache()
             self.scheduler.step()
-            if epoch % 25 == 0:
-                # self.evaluate()
-                # self.backbone.train()
-                # self.heads.train()
+            if epoch % 10 == 0:
+                self.evaluate()
+                self.backbone.train()
+                self.heads.train()
                 self.save(epoch)

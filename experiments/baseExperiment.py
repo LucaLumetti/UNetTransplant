@@ -111,6 +111,7 @@ class BaseExperiment:
         np.save(f"debug/{folder_name}/label.npy", y)
         np.save(f"debug/{folder_name}/pred_logits.npy", pred_logits)
         np.save(f"debug/{folder_name}/pred_label.npy", pred_label)
+        del x, y, pred_logits, pred_label
 
     def compute_metrics(
         self,
@@ -203,8 +204,6 @@ class BaseExperiment:
         pred_aggregator = tio.inference.GridAggregator(patch_sampler)
 
         spatial_shape = subject["images"][tio.DATA].shape[-3:]
-        num_pred_classes = sum(t.num_output_channels for t in heads.tasks)
-        pred = torch.zeros((num_pred_classes, *spatial_shape), device="cuda")
 
         for patch in patch_sampler:
             # unsqueeze to add batch dimension
@@ -220,10 +219,8 @@ class BaseExperiment:
             pred_aggregator.add_batch(heads_pred, location)
 
         pred = pred_aggregator.get_output_tensor()
-        background_channel = torch.zeros((1, *spatial_shape), device=pred.device)
 
-        pred = torch.concatenate([background_channel, pred], axis=0)
+        values, indices = pred.max(dim=0)
 
-        pred = pred.argmax(axis=0)
-
-        return pred
+        indices[values < 0] = 0  # TODO: check that this should not be 0.5
+        return indices
