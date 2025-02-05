@@ -80,6 +80,7 @@ class _LossConfig:
 class _TrainConfig:
     EPOCHS: int = 200
     RESUME: Optional[Path] = None
+    SAVE_EVERY: int = 10
 
 
 # Global variable to store the instances

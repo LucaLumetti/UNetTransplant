@@ -137,7 +137,7 @@ class FinetuneExperiment(BaseExperiment):
 
             self.scheduler.step()
             gc.collect()
-            if epoch % 2 == 0:
+            if epoch % configs.TrainConfig.SAVE_EVERY == 0:
                 try:
                     self.debug_batch(
                         image,

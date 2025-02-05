@@ -35,17 +35,18 @@ def run_job(config_path):
             config_path,
             "--name",
             f"TaskVector_{config_path}",
+            # "Pretrain_ZhimingCui",
         ]
     )
 
 
 configs_to_run = [
     "/work/grana_maxillo/UNetMerging/configs/taskvector_tf_mandible.toml",
-    "/work/grana_maxillo/UNetMerging/configs/taskvector_tf_lriac.toml",
+    # "/work/grana_maxillo/UNetMerging/configs/taskvector_tf_lriac.toml",
     "/work/grana_maxillo/UNetMerging/configs/taskvector_tf_pharynx.toml",
-    "/work/grana_maxillo/UNetMerging/configs/finetune_tf_mandible.toml",
-    "/work/grana_maxillo/UNetMerging/configs/finetune_tf_lriac.toml",
-    "/work/grana_maxillo/UNetMerging/configs/finetune_tf_pharynx.toml",
+    # "/work/grana_maxillo/UNetMerging/configs/finetune_tf_mandible.toml",
+    # "/work/grana_maxillo/UNetMerging/configs/finetune_tf_lriac.toml",
+    # "/work/grana_maxillo/UNetMerging/configs/finetune_tf_pharynx.toml",
     # "/work/grana_maxillo/UNetMerging/configs/pretrain.toml",
 ]
 

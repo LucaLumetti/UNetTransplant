@@ -38,11 +38,12 @@ def main():
     wandb_mode = "online"
 
     if "debugpy" in sys.modules:
-        print("Setting batch size to 1 for debugging.")
-        print("Disabling wandb.")
         configs.DataConfig.BATCH_SIZE = 1
         configs.DataConfig.NUM_WORKERS = 1
-        wandb_mode = "disabled"
+        wandb_mode = "online"
+        print(f"[DEBUG] BATCH_SIZE: {configs.DataConfig.BATCH_SIZE}")
+        print(f"[DEBUG] NUM_WORKERS: {configs.DataConfig.NUM_WORKERS}")
+        print(f"[DEBUG] wandb mode: {wandb_mode}")
 
     wandb.init(
         project="UNetMerging",

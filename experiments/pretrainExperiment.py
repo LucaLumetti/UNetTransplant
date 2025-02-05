@@ -13,6 +13,7 @@ from datasets import DatasetFactory
 from datasets.PatchDataset import PatchDataset
 from experiments import BaseExperiment
 from losses import LossFactory
+from metrics.Metrics import Metrics
 from models import ModelFactory
 from models.taskheads import TaskHeads
 from models.unet3d.unet3d import UNet3D
@@ -43,6 +44,7 @@ class PretrainExperiment(BaseExperiment):
         self.scheduler = self.setup_scheduler()
 
         self.starting_epoch = 0
+        self.metrics = Metrics()
 
         if configs.TrainConfig.RESUME:
             self.load(
@@ -150,8 +152,8 @@ class PretrainExperiment(BaseExperiment):
 
             # torch.cuda.empty_cache()
             self.scheduler.step()
-            if epoch % 10 == 0:
-                self.evaluate()
-                self.backbone.train()
-                self.heads.train()
+            if epoch % configs.TrainConfig.SAVE_EVERY == 0:
+                # self.evaluate()
+                # self.backbone.train()
+                # self.heads.train()
                 self.save(epoch)

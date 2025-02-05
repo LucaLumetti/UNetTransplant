@@ -30,7 +30,9 @@ class DiceBCELoss(nn.Module):
         target_onehot = torch.zeros(
             y_shape_background, device=net_output.device, dtype=torch.bool
         )
-        target_onehot.scatter_(1, target.long(), 1)
+        target = target.long()
+        target[target > 42] = 0
+        target_onehot.scatter_(1, target, 1)
         target_onehot = target_onehot[:, 1:]
 
         dice_loss = self.dice(net_output, target_onehot, mask=mask)
