@@ -5,7 +5,8 @@ from torch import nn
 
 import configs
 import models
-from models.taskheads import Task
+from models.unet3d.unet3d import ResidualUNet3D
+from task.task import Task
 
 
 def init_weight_he(model: nn.Module, neg_slope=1e-2):
@@ -22,6 +23,45 @@ def init_weight_he(model: nn.Module, neg_slope=1e-2):
 
 
 class ModelFactory:
+    @staticmethod
+    def create_backbone(model_config: configs._BackboneConfig) -> torch.nn.Module:
+        name = model_config.NAME
+        assert (
+            name == "ResidualUNet3D"
+        ), f"Backbone {name} not supported, only ResidualUNet3D is supported"
+
+        try:
+            model = ResidualUNet3D(
+                in_channels=model_config.IN_CHANNELS,
+                dropout_prob=model_config.DROPOUT_PROB,
+            )
+        except TypeError as e:
+            raise TypeError(f"Could not instantiate model: {e}")
+        init_weight_he(model)
+        model = model.cuda()
+        # TODO: load checkpoint?
+        return model
+
+    @staticmethod
+    def create_heads(
+        heads_config: configs._HeadsConfig, tasks: List[Task]
+    ) -> torch.nn.Module:
+        name = heads_config.NAME
+        assert (
+            name == "TaskHeads"
+        ), f"Heads {name} not supported, only TaskHeads is supported"
+
+        try:
+            model = models.TaskHeads(
+                input_channels=heads_config.IN_CHANNELS,
+                tasks=tasks,
+            )
+        except TypeError as e:
+            raise TypeError(f"Could not instantiate model: {e}")
+        init_weight_he(model)
+        model = model.cuda()
+        return model
+
     @staticmethod
     def create(model_config, tasks: Optional[List[Task]] = None) -> torch.nn.Module:
         name = model_config.NAME
@@ -47,9 +87,6 @@ class ModelFactory:
         init_weight_he(model)
         model = model.cuda()
 
-        print(
-            f"Model {name} created, number of parameters: {sum(p.numel() for p in model.parameters())/1e6:.2f}M"
-        )
         return model
 
     def create_from_checkpoint(checkpoint_path: str) -> torch.nn.Module:

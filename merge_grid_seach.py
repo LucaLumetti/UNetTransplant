@@ -4,6 +4,8 @@ from pathlib import Path
 import numpy as np
 import torch
 import torchio as tio
+from matplotlib import pyplot as plt
+from tqdm import tqdm
 
 import configs
 from datasets import DatasetFactory
@@ -20,7 +22,7 @@ trained_taskvectors = {
     "Upper Jawbone": "/work/grana_maxillo/UNetMerging/checkpoints/TaskVector_/work/grana_maxillo/UNetMerging/configs/taskvector_tf_skull.toml/epoch0010_2025-02-06 22:35:05.818140_task_vector.pth",
     "IAC": "/work/grana_maxillo/UNetMerging/checkpoints/TaskVector_/work/grana_maxillo/UNetMerging/configs/taskvector_tf_lriac.toml/epoch0010_2025-02-06 22:31:12.042787_task_vector.pth",
     "Pharynx": "/work/grana_maxillo/UNetMerging/checkpoints/TaskVector_/work/grana_maxillo/UNetMerging/configs/taskvector_tf_pharynx.toml/epoch0010_2025-02-06 22:29:27.968639_task_vector.pth",
-    "Teeth": "/work/grana_maxillo/UNetMerging/checkpoints/TaskVector_/work/grana_maxillo/UNetMerging/configs/taskvector_tf_teeth.toml/epoch0010_2025-02-07 06:23:03.002797_task_vector.pth",
+    # 'Teeth': '/work/grana_maxillo/UNetMerging/checkpoints/TaskVector_/work/grana_maxillo/UNetMerging/configs/taskvector_tf_teeth.toml/epoch0010_2025-02-07 06:23:03.002797_task_vector.pth',
 }
 
 taskvector_tasks = {
@@ -106,118 +108,62 @@ def main():
         task = taskvector_tasks[task_name]
         taskvectors_and_tasks.append(TaskVectorTask(task_vector, task))
 
-    # for tvt in taskvectors_and_tasks:
-    #     task_vector = tvt.task_vector
-    #     task = tvt.task
-    #     task_vector.create_params_histogram()
-    #     backbone, heads = task_vector.get_backbone_and_heads(
-    #         tasks=[task]
-    #     )
-    #     backbone.eval()
-    #     heads.eval()
-    #     backbone, heads = backbone.cuda(), heads.cuda()
-
-    #     configs.DataConfig.INCLUDE_ONLY_CLASSES = task.include_only_classes
-    #     dataset = PatchDataset(split="val", dataset_name="ToothFairy2")
-    #     subject = dataset.dataset[0]
-
-    #     print(f"Predicting {task_vector.task_name}")
-    #     with torch.no_grad():
-    #         out = BaseExperiment.functional_predict(
-    #             backbone=backbone, heads=heads, subject=subject, patch_overlap=20
-    #         )
-    #     x = subject['images'][tio.DATA]
-    #     y = subject['labels'][tio.DATA]
-    #     # metrics = Metrics().compute(out, y)
-    #     metrics = {'dice': -1}
-    #     print(f'Dice: {metrics["dice"]}')
-
-    #     output_path = Path(f"debug/merge/{task_vector.task_name}_{metrics['dice']}")
-    #     os.makedirs(output_path, exist_ok=True)
-    #     np.save(output_path / "image.npy", x[0])
-    #     np.save(output_path / "label.npy", y[0])
-    #     np.save(output_path / "pred.npy", out.cpu().detach().numpy().astype(np.uint8))
-
-    for idx1, tvt1 in enumerate(taskvectors_and_tasks):
+    for idx1, tvt1 in enumerate(tqdm(taskvectors_and_tasks)):
         for idx2, tvt2 in enumerate(taskvectors_and_tasks):
             if idx1 >= idx2:
                 continue
-            # alpha1 = np.linspace(0, 1, 5)
-            # alpha2 = np.linspace(0, 1, 5)
+            alpha1 = np.linspace(0, 2, 21)
+            alpha2 = np.linspace(0, 2, 21)
+
             combined = tvt1 + tvt2
             task_vector = combined.task_vector
             task = combined.task
             task_vector.create_params_histogram()
-            backbone, heads = task_vector.get_backbone_and_heads(tasks=[task])
-            backbone.eval()
-            heads.eval()
-            backbone, heads = backbone.cuda(), heads.cuda()
 
             configs.DataConfig.INCLUDE_ONLY_CLASSES = task.include_only_classes
             dataset = PatchDataset(split="val", dataset_name="ToothFairy2")
             subject = dataset.dataset[0]
 
-            print(f"Predicting {task_vector.task_name}")
-            with torch.no_grad():
-                out = BaseExperiment.functional_predict(
-                    backbone=backbone, heads=heads, subject=subject
-                )
-            x = subject["images"][tio.DATA]
-            y = subject["labels"][tio.DATA]
-            metrics = Metrics().compute(out, y, average="none")
-            print(f'Dice: {metrics["dice"]}')
+            grid_search_dices = np.zeros((len(alpha1), len(alpha2)))
+            for idx_a1, a1 in enumerate(alpha1):
+                for idx_a2, a2 in enumerate(alpha2):
+                    task_vector._alphas = [a1, a2]
+                    backbone, heads = task_vector.get_backbone_and_heads(tasks=[task])
+                    backbone.eval()
+                    heads.eval()
+                    backbone, heads = backbone.cuda(), heads.cuda()
 
-            output_path = Path(f"debug/merge/{task_vector.task_name}_{metrics['dice']}")
-            os.makedirs(output_path, exist_ok=True)
-            np.save(output_path / "image.npy", x[0])
-            np.save(output_path / "label.npy", y[0])
-            np.save(
-                output_path / "pred.npy", out.cpu().detach().numpy().astype(np.uint8)
-            )
+                    with torch.no_grad():
+                        out = BaseExperiment.functional_predict(
+                            backbone=backbone, heads=heads, subject=subject
+                        )
+                    x = subject["images"][tio.DATA]
+                    y = subject["labels"][tio.DATA]
+                    metrics = Metrics().compute(out, y, average="macro")
+                    grid_search_dices[idx_a1, idx_a2] = metrics["dice"]
+                    tqdm.write(
+                        f'{task_vector.task_name} - {a1} - {a2}. Dice: {metrics["dice"]}'
+                    )
 
-    # task_vector_lowerjaw = TaskVector(
-    #     task_name="Lower Jaw",
-    #     checkpoints="/work/grana_maxillo/UNetMerging/checkpoints/TaskVector_/work/grana_maxillo/UNetMerging/configs/taskvector_tf_mandible.toml/epoch0004_2025-02-05 17:39:04.834860_task_vector.pth",
-    #     alphas=[1],
-    # )
-    # task_vector_lowerjaw.create_params_histogram()
-
-    # task_vector_pharynx = TaskVector(
-    #     task_name="Pharynx",
-    #     checkpoints="/work/grana_maxillo/UNetMerging/checkpoints/TaskVector_/work/grana_maxillo/UNetMerging/configs/taskvector_tf_pharynx.toml/epoch0002_2025-02-05 17:25:37.906717_task_vector.pth",
-    #     alphas=[1],
-    # )
-    # task_vector_pharynx.create_params_histogram()
-    # task_vector_combined = task_vector_lowerjaw + task_vector_pharynx
-
-    # # ties_vector_merged = TiesMerging(task_vector_combined)()
-
-    # dataset = PatchDataset(split="val", dataset_name="ToothFairy2")
-    # backbone, heads = task_vector_combined.get_backbone_and_heads(
-    #     tasks=dataset.get_tasks()
-    # )
-    # backbone.eval()
-    # heads.eval()
-
-    # subject = dataset.dataset[0]
-
-    # backbone, heads = backbone.cuda(), heads.cuda()
-
-    # with torch.no_grad():
-    #     out = BaseExperiment.functional_predict(
-    #         backbone=backbone, heads=heads, subject=subject
-    #     )
-
-    # x = subject['images'][tio.DATA]
-    # y = subject['labels'][tio.DATA]
-    # metrics = Metrics().compute(out, y)
-    # print(f'Dice: {metrics["dice"]}')
-
-    # np.save("debug/merge_image.npy", x[0])
-    # np.save("debug/merge_label.npy", y[0])
-    # np.save("debug/merge_pred.npy", out.cpu().detach().numpy().astype(np.uint8))
-
-    # print("Done")
+                    output_path = Path(
+                        f"debug/merge/{task_vector.task_name}_{metrics['dice']}_a1_{a1}_a2_{a2}"
+                    )
+                    # os.makedirs(output_path, exist_ok=True)
+                    # np.save(output_path / "image.npy", x[0])
+                    # np.save(output_path / "label.npy", y[0])
+                    # np.save(output_path / "pred.npy", out.cpu().detach().numpy().astype(np.uint8))
+                # create heatmap from grid_search_dices.
+                # grid_search_dices is a NxN matrix where N is the number of alphas and the value is between 0 and 1. -1 means that
+                # the dice was not computed and should be dark, other values should have a gradient colormap.
+            plt.imshow(grid_search_dices, cmap="viridis")
+            # add labels and ticks
+            plt.xticks(np.arange(len(alpha1)), alpha1.tolist())
+            plt.yticks(np.arange(len(alpha2)), alpha2.tolist())
+            plt.xlabel("Alpha 1")
+            plt.ylabel("Alpha 2")
+            plt.colorbar()
+            plt.savefig(f"debug/merge/{task_vector.task_name}_grid_search.png")
+            plt.close()
 
 
 if __name__ == "__main__":

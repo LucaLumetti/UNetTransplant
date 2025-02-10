@@ -2,24 +2,34 @@ import json
 import math
 from collections import defaultdict
 from pathlib import Path
-from typing import List, Literal, Union
+from typing import List, Literal, Optional, Union, cast
 
 import numpy as np
 import torch
 import torchio as tio
+from sympy import Idx
 
 import configs
 from custom_types import Split
 from datasets.LoadableDataset import LoadableDataset
-from models.taskheads import Task
 from preprocessing.dataset_class_mapping import DATASET_IDX, DATASET_ORIGINAL_LABELS
+from task.task import Task
 
 
 class PatchDataset:
-    def __init__(self, split: Split, dataset_name: str):
-        class_to_new_label_mapping = self.get_label_remap_dict(dataset_name)
+    def __init__(self, split: Split, task: Task):
+        self.task = task
+        self.dataset_name = task.dataset_name
+        labels_to_remap = {}
+        for idx, key in enumerate(DATASET_ORIGINAL_LABELS[self.dataset_name].keys()):
+            key = int(key)
+            label_to_assign = 0
+            if key in task.labels_to_predict:
+                label_to_assign = task.labels_to_predict[key]
+            labels_to_remap[int(key)] = label_to_assign
+
         preprocessing = [
-            tio.RemapLabels(class_to_new_label_mapping),
+            tio.RemapLabels(labels_to_remap),
             tio.RescaleIntensity((0, 1), percentiles=(0.5, 99.5)),
         ]
         augmentations = []
@@ -34,45 +44,15 @@ class PatchDataset:
 
         transforms = tio.Compose(preprocessing + augmentations)
 
-        self.dataset_name = dataset_name
         self.split = split
 
-        self.dataset_json = self.load_dataset_json()  # unused ?
+        self.dataset_json = self.load_dataset_json()  # TODO: unused ?
         self.subjects = self.load_subjects()
-        self.num_output_channels = (
-            len(DATASET_ORIGINAL_LABELS[self.dataset_name].keys()) + 1
-        )
-        if (
-            configs.DataConfig.INCLUDE_ONLY_CLASSES is not None
-            and len(configs.DataConfig.INCLUDE_ONLY_CLASSES) > 0
-        ):
-            self.num_output_channels = len(configs.DataConfig.INCLUDE_ONLY_CLASSES) + 1
+        self.num_output_channels = task.num_output_channels
 
         self.dataset = tio.SubjectsDataset(self.subjects, transform=transforms)
 
         print(f"Loaded {len(self.subjects)} subjects from dataset {self.dataset_name}")
-
-    def get_label_remap_dict(self, dataset_name):
-        class_names_to_predict = configs.DataConfig.INCLUDE_ONLY_CLASSES
-        if class_names_to_predict is None or len(class_names_to_predict) == 0:
-            class_to_predict = []
-            for class_idx, class_name in DATASET_ORIGINAL_LABELS[dataset_name].items():
-                class_to_predict.append(int(class_idx))
-
-        else:
-            class_to_predict = []
-            for class_idx, class_name in DATASET_ORIGINAL_LABELS[dataset_name].items():
-                if class_name in class_names_to_predict:
-                    class_to_predict.append(int(class_idx))
-
-        # class_to_new_label_mapping = {
-        #     class_idx: idx for idx, class_idx in enumerate(class_to_predict, start=1)
-        # }
-        max_label = max(int(k) for k in DATASET_ORIGINAL_LABELS[dataset_name].keys())
-        class_to_new_label_mapping = {key: 0 for key in range(1, max_label + 1)}
-        for idx, class_idx in enumerate(class_to_predict, start=1):
-            class_to_new_label_mapping[int(class_idx)] = idx
-        return class_to_new_label_mapping
 
     def load_dataset_json(
         self,
@@ -148,8 +128,8 @@ class PatchDataset:
 
     def get_dataloader(
         self,
-        batch_size: int = None,
-        num_workers: int = None,
+        batch_size: Optional[int] = None,
+        num_workers: Optional[int] = None,
     ) -> torch.utils.data.DataLoader:
         if self.split == "train":
             return self.get_train_dataloader(batch_size, num_workers)
@@ -158,18 +138,22 @@ class PatchDataset:
 
     def get_train_dataloader(
         self,
-        batch_size: int = None,
-        num_workers: int = None,
+        batch_size: Optional[int] = None,
+        num_workers: Optional[int] = None,
     ) -> torch.utils.data.DataLoader:
         if batch_size is None:
             batch_size = configs.DataConfig.BATCH_SIZE
         if num_workers is None:
             num_workers = configs.DataConfig.NUM_WORKERS
+            num_workers = cast(int, num_workers)
 
         label_probs = {}
         for i in range(1, self.num_output_channels):
             label_probs[i] = 1
-        label_probs[0] = sum(label_probs.values()) / 3  # background 25%
+        label_probs[0] = 0.1
+        label_probs[1] = 0.5
+        label_probs[2] = 0.5
+        # label_probs[0] = sum(label_probs.values()) / 9  # background 10%
 
         patch_sampler = tio.data.LabelSampler(
             patch_size=(96, 96, 96),
@@ -177,8 +161,8 @@ class PatchDataset:
         )
         patches_queue = tio.Queue(
             subjects_dataset=self.dataset,
-            max_length=15,
-            samples_per_volume=3,
+            max_length=30,
+            samples_per_volume=10,
             sampler=patch_sampler,
             num_workers=num_workers,
         )
@@ -194,18 +178,7 @@ class PatchDataset:
 
     def get_val_dataloader(
         self,
-        batch_size: int = None,
-        num_workers: int = None,
+        batch_size: Optional[int] = None,
+        num_workers: Optional[int] = None,
     ) -> torch.utils.data.DataLoader:
         raise NotImplementedError("Val dataloader not implemented yet.")
-        if batch_size is None:
-            batch_size = 1
-        if num_workers is None:
-            num_workers = 1
-
-        # patch_sampler = tio.data.GridSampler(
-        #     self,
-        #     patch_size=(96, 96, 96),
-        #     patch_overlap=0,
-        # )
-        return []

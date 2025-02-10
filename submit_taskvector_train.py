@@ -6,7 +6,7 @@ import submitit
 executor = submitit.AutoExecutor(folder="slurm_logs")
 
 executor.update_parameters(
-    timeout_min=12 * 60,
+    timeout_min=24 * 60,
     # slurm_partition="boost_usr_prod",
     # timeout_min=4 * 60,
     slurm_partition="all_usr_prod",
@@ -29,25 +29,28 @@ def run_job(config_path):
             "python",
             "main.py",
             "--experiment",
-            "TaskVectorExperiment",
+            "TaskVectorTrainExperiment",
             # "PretrainExperiment",
             "--config",
             config_path,
-            "--name",
-            f"TaskVector_{config_path}",
+            # "--name",
+            # f"TaskVector_{config_path}",
             # "Pretrain_ZhimingCui",
         ]
     )
 
 
 configs_to_run = [
-    "/work/grana_maxillo/UNetMerging/configs/taskvector_tf_mandible.toml",
-    # "/work/grana_maxillo/UNetMerging/configs/taskvector_tf_lriac.toml",
-    "/work/grana_maxillo/UNetMerging/configs/taskvector_tf_pharynx.toml",
-    # "/work/grana_maxillo/UNetMerging/configs/finetune_tf_mandible.toml",
-    # "/work/grana_maxillo/UNetMerging/configs/finetune_tf_lriac.toml",
-    # "/work/grana_maxillo/UNetMerging/configs/finetune_tf_pharynx.toml",
-    # "/work/grana_maxillo/UNetMerging/configs/pretrain.toml",
+    "/work/grana_maxillo/UNetMerging/configs/taskvector_pretrain_naive/taskvector_tf_crownbridgeimplant.toml",
+    "/work/grana_maxillo/UNetMerging/configs/taskvector_pretrain_naive/taskvector_tf_lriac.toml",
+    "/work/grana_maxillo/UNetMerging/configs/taskvector_pretrain_naive/taskvector_tf_mandible.toml",
+    "/work/grana_maxillo/UNetMerging/configs/taskvector_pretrain_naive/taskvector_tf_pharynx.toml",
+    "/work/grana_maxillo/UNetMerging/configs/taskvector_pretrain_naive/taskvector_tf_teeth.toml",
+    "/work/grana_maxillo/UNetMerging/configs/taskvector_pretrain_stable/taskvector_tf_crownbridgeimplant.toml",
+    "/work/grana_maxillo/UNetMerging/configs/taskvector_pretrain_stable/taskvector_tf_lriac.toml",
+    "/work/grana_maxillo/UNetMerging/configs/taskvector_pretrain_stable/taskvector_tf_mandible.toml",
+    "/work/grana_maxillo/UNetMerging/configs/taskvector_pretrain_stable/taskvector_tf_pharynx.toml",
+    "/work/grana_maxillo/UNetMerging/configs/taskvector_pretrain_stable/taskvector_tf_teeth.toml",
 ]
 
 for config_path in configs_to_run:

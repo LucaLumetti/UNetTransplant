@@ -9,8 +9,8 @@ import toml
 @dataclass
 class _DataConfig:
     NAME: str = "ComposedDataset"
-    DATASET_NAMES: List[str] = field(default_factory=lambda: ["AbdomenCT-1K"])
-    INCLUDE_ONLY_CLASSES: List[str] = field(default_factory=lambda: ["kidney"])
+    DATASET_NAMES: List[str] = field(default_factory=lambda: [])
+    DATASET_CLASSES: List[str] = field(default_factory=lambda: ["all"])
     BATCH_SIZE: int = 2
     NUM_WORKERS: int = 2
     DATA_PREPROCESSED_PATH: Path = Path(
@@ -28,6 +28,7 @@ class _BackboneConfig:
     IN_CHANNELS: int = 1
     PRETRAIN_CHECKPOINTS: Optional[Path] = None
     N_EPOCHS_FREEZE: int = 5
+    DROPOUT_PROB: float = 0.1
     # PRETRAIN_CHECKPOINTS: Optional[Path] = Path(
     #     "/work/grana_maxillo/UNetMerging/checkpoints/checkpoint_190_2025-01-19 04:55:49.994931.pth"
     # )

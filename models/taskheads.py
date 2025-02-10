@@ -6,25 +6,7 @@ import torch.nn as nn
 import configs
 from losses import LossFactory
 from preprocessing.dataset_class_mapping import DATASET_ORIGINAL_LABELS
-
-
-class Task:
-    def __init__(self, dataset_name, dataset_idx, num_output_channels):
-        self.dataset_idx = dataset_idx
-        self.num_output_channels = num_output_channels
-        self.dataset_name = dataset_name
-        # self.mask = torch.ones((1, num_output_channels, 1, 1, 1), dtype=torch.bool)
-
-    # def create_task_mask(self,):
-    #     if (
-    #         configs.DataConfig.INCLUDE_ONLY_CLASSES is None
-    #         or len(configs.DataConfig.INCLUDE_ONLY_CLASSES) == 0
-    #     ):
-    #         return
-
-    #     for class_idx, class_name in DATASET_ORIGINAL_LABELS[self.dataset_name].items():
-    #         if class_name not in configs.DataConfig.INCLUDE_ONLY_CLASSES and class_idx not in configs.DataConfig.INCLUDE_ONLY_CLASSES:
-    #             self.mask[:, int(class_idx) - 1, :, :, :] = 0
+from task.task import Task
 
 
 class TaskHeads(nn.Module):
@@ -41,8 +23,20 @@ class TaskHeads(nn.Module):
             }
         )
 
-    # TODO: maybe remove y dependency and compute loss in the parent. Mask would still be used. Maybe a problem for grouped_y
     def forward(
+        self,
+        x: torch.Tensor,
+        task_idx: torch.Tensor,
+        y: Optional[torch.Tensor] = None,
+    ):
+        return self.train_forward(x, task_idx, y)
+        if self.training:
+            return self.train_forward(x, task_idx, y)
+        else:
+            return self.eval_forward(x, task_idx)
+
+    # TODO: maybe remove y dependency and compute loss in the parent. Mask would still be used. Maybe a problem for grouped_y
+    def train_forward(
         self,
         x: torch.Tensor,
         task_idx: torch.Tensor,
@@ -60,6 +54,7 @@ class TaskHeads(nn.Module):
                 task.dataset_idx: y[task_idx == task.dataset_idx] for task in self.tasks
             }
             grouped_y = {k: v for k, v in grouped_y.items() if v.shape[0] > 0}
+
         predictions = []
         losses = []
         loss_weights = []
@@ -89,15 +84,5 @@ class TaskHeads(nn.Module):
             losses = (losses * loss_weights).sum() / loss_weights.sum()
         return predictions, losses
 
-
-if __name__ == "__main__":
-    # example usage
-    task1 = Task("dataset1", 0, 1)
-    task2 = Task("dataset2", 1, 3)
-    tasks = [task1, task2]
-    task_heads = TaskHeads(64, tasks, nn.CrossEntropyLoss())
-    x = torch.rand(8, 64, 16, 16, 16)
-    y = torch.randint(0, 3, (8, 1, 16, 16, 16))
-    task_idx = torch.tensor([0, 1, 0, 0, 1, 1, 0, 1])
-    prediction, loss = task_heads(x, y, task_idx)
-    print(prediction.shape, loss)
+    def eval_forward(self, x: torch.Tensor, task_idx: torch.Tensor):
+        raise NotImplementedError("Eval forward not implemented yet.")

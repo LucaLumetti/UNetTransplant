@@ -9,6 +9,7 @@ from models.modelFactory import ModelFactory
 from models.taskheads import TaskHeads
 from models.TaskVectorModel import TaskVectorModel
 
+
 def vector_to_state_dict(vector, state_dict):
     """
     Convert a flattened parameter vector to a PyTorch state dict.
@@ -24,6 +25,7 @@ def vector_to_state_dict(vector, state_dict):
     sorted_dict = OrderedDict(sorted(new_state_dict.items(), key=lambda x: int(x[0])))
     torch.nn.utils.vector_to_parameters(vector, sorted_dict.values())
     return sorted_dict
+
 
 def state_dict_to_vector(state_dict):
     """
@@ -108,9 +110,10 @@ class TaskVector:
         pass
 
     def __add__(self, other):
+        both_names = f"{self.task_name} and {other.task_name}"
         both_params = self._params + other._params
         both_alphas = self._alphas + other._alphas
-        tv = TaskVector(params=both_params, alphas=both_alphas)
+        tv = TaskVector(task_name=both_names, params=both_params, alphas=both_alphas)
         tv._head_params = self._head_params + other._head_params
         tv._backbone_params = self._backbone_params
         return tv
@@ -119,7 +122,11 @@ class TaskVector:
         return self.__add__(-other)
 
     def __neg__(self):
-        return TaskVector(params=self._params, alphas=[-a for a in self._alphas])
+        return TaskVector(
+            task_name=self.task_name,
+            params=self._params,
+            alphas=[-a for a in self._alphas],
+        )
 
     def get_backbone_and_heads(self, tasks):
         backbone = ModelFactory.create(configs.BackboneConfig)
@@ -151,14 +158,14 @@ class TaskVector:
         num_different_heads = len(heads_state_dict.keys()) / 2
         assert num_different_heads == 1, "Still TODO: multiple heads"
 
-        taskhead = TaskHeads(64, tasks)
+        taskhead = TaskHeads(configs.HeadsConfig.IN_CHANNELS, tasks)
         taskhead.load_state_dict(heads_state_dict)
 
         return taskhead
-
 
     def create_params_histogram(self):
         params = self.params
         flattened_params = torch.cat([p.flatten() for p in params])
         plt.hist(flattened_params.cpu().detach().numpy(), bins=100)
         plt.savefig(f"debug/params_histogram_{self.task_name}.png")
+        plt.close()

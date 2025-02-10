@@ -2,11 +2,14 @@ import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import torchio as tio
 import umap
 from sklearn.cluster import KMeans
+from tqdm import tqdm
 
 import configs
 from datasets import DatasetFactory
+from datasets.PatchDataset import PatchDataset
 from experiments.baseExperiment import BaseExperiment
 from models.modelFactory import ModelFactory
 from preprocessing.preprocessor import Preprocessor
@@ -46,54 +49,43 @@ def main():
 
     backbone.load_state_dict(backbone_state_dict)
 
-    dataset = DatasetFactory.create(split="val")
+    dataset = PatchDataset(split="val", dataset_name="ToothFairy2")
+    for subject in dataset.dataset:
+        patch_sampler = tio.inference.GridSampler(
+            subject,
+            patch_size=(96, 96, 96),
+            patch_overlap=0,
+        )
 
-    for dataset_idx in range(len(dataset)):
-        x, y, i = dataset[dataset_idx]
+        spatial_shape = subject["images"][tio.DATA][0].shape
 
-        image_array = x.squeeze()
+        pred_aggregator = torch.zeros((64, *spatial_shape), device="cuda")
 
-        image_array, _ = Preprocessor.pad_to_patchable_shape(image_array, None)
+        for patch in tqdm(patch_sampler):
+            # unsqueeze to add batch dimension
+            image_patch = patch["images"][tio.DATA].unsqueeze(0).to("cuda")
+            dataset_idx = patch["dataset_idx"].unsqueeze(0)
+            location = patch[tio.LOCATION].unsqueeze(0)
 
-        if image_array.ndim == 3:
-            image_array = image_array[np.newaxis, ...]
-
-        patches = Preprocessor.extract_patches(image_array, None, patch_overlap=0.5)
-
-        num_classes_to_predict = len(configs.DataConfig.DATASET_NAMES)
-        spatial_shape = image_array.shape[-3:]
-        bb_pred = torch.zeros((64, *spatial_shape), device=device)
-        count = torch.zeros((1, *spatial_shape), device=device)
-
-        for image_patch, _, coords in patches:
-            image_patch = torch.from_numpy(image_patch).unsqueeze(0).to(device)
             with torch.inference_mode():
                 backbone_pred = backbone(image_patch).squeeze(0)
-            bb_pred[
+
+            pred_aggregator[
                 :,
-                coords[0] : backbone_pred.shape[-3] + coords[0],
-                coords[1] : backbone_pred.shape[-2] + coords[1],
-                coords[2] : backbone_pred.shape[-1] + coords[2],
-            ] += backbone_pred.detach()
-            count[
-                :,
-                coords[0] : backbone_pred.shape[-3] + coords[0],
-                coords[1] : backbone_pred.shape[-2] + coords[1],
-                coords[2] : backbone_pred.shape[-1] + coords[2],
-            ] += 1
+                location[0, 0] : location[0, 3],
+                location[0, 1] : location[0, 4],
+                location[0, 2] : location[0, 5],
+            ] = backbone_pred
 
-        bb_pred = bb_pred / count
-        bb_pred = bb_pred.squeeze()
+        bb_pred = pred_aggregator.cpu().numpy()
+        np.save(
+            f"debug/umap/image_array.npy", subject["images"][tio.DATA].cpu().numpy()
+        )
+        np.save(f"debug/umap/pred.npy", bb_pred)
 
-        # bb_pred = bb_pred[:, ::10, ::10, ::10]
-        print(bb_pred.shape)
-
-        np.save(f"debug/umap/{dataset_idx}_image_array.npy", image_array)
-        np.save(f"debug/umap/{dataset_idx}_pred.npy", bb_pred.cpu().numpy())
-
-        kmeans_labels = kmeans(bb_pred.cpu().numpy().reshape(64, -1).T, 10)
+        kmeans_labels = kmeans(bb_pred.reshape(64, -1).T, 10)
         kmeans_labels = kmeans_labels.reshape(*bb_pred.shape[-3:])
-        np.save(f"debug/umap/{dataset_idx}_kmeans_labels.npy", kmeans_labels + 1)
+        np.save(f"debug/umap/kmeans_labels.npy", kmeans_labels + 1)
         print("Kmeans computed 🎉")
         continue
 

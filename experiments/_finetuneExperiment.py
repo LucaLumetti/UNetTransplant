@@ -104,11 +104,9 @@ class FinetuneExperiment(BaseExperiment):
                 desc=f"Epoch {epoch}",
                 total=len(self.train_loader),
             ):
-                image = sample["images"][tio.DATA]
-                label = sample["labels"][tio.DATA]
-                dataset_indices = sample["dataset_idx"]
-
-                image, label = image.to(device), label.to(device)
+                image, label, dataset_indices = self.get_image_label_idx(
+                    sample, device="cuda"
+                )
 
                 backbone_pred = self.backbone(image)
                 if configs.BackboneConfig.N_EPOCHS_FREEZE > epoch:
@@ -132,21 +130,14 @@ class FinetuneExperiment(BaseExperiment):
                         "train/Delta_Tetha": self.compute_task_vector_norm(),
                     }
                 )
+
                 del image, label, dataset_indices, backbone_pred, heads_pred, loss
                 del sample
+                gc.collect()
 
             self.scheduler.step()
-            gc.collect()
+
             if epoch % configs.TrainConfig.SAVE_EVERY == 0:
-                try:
-                    self.debug_batch(
-                        image,
-                        label,
-                        heads_pred[0],
-                        folder_name=f"batch_{i}_{loss.item()}",
-                    )
-                except Exception as e:
-                    print(e)
                 self.evaluate()
                 self.backbone.train()
                 self.heads.train()

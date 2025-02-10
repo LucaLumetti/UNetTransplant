@@ -1,4 +1,3 @@
-import sys
 from typing import Optional
 
 import torch
@@ -8,13 +7,13 @@ from tqdm import tqdm
 from losses.DiceLoss import DiceLoss
 
 
-class DiceBCELoss(nn.Module):
+class DiceCELoss(nn.Module):
     def __init__(
         self,
     ):
-        super(DiceBCELoss, self).__init__()
+        super(DiceCELoss, self).__init__()
 
-        self.bce = nn.BCEWithLogitsLoss()
+        self.ce = nn.CrossEntropyLoss(ignore_index=-1)
         self.dice = DiceLoss(activation=torch.sigmoid, batch_dice=False)
 
     def forward(
@@ -33,21 +32,21 @@ class DiceBCELoss(nn.Module):
         )
         target = target.long()
         target[target > 42] = 0
+        print(f"{target.min()=}, {target.max()=}")
         target_onehot.scatter_(1, target, 1)
         target_onehot = target_onehot[:, 1:]
 
         dice_loss = self.dice(net_output, target_onehot, mask=mask)
-        target_onehot = target_onehot.float()
+        # target_onehot = target_onehot.float()
 
-        if mask is not None:
-            net_output = net_output[:, mask, :, :, :]
-            target_onehot = target_onehot[:, mask, :, :, :]
-        bce_loss = self.bce(net_output, target_onehot)
+        # if mask is not None:
+        #     net_output = net_output[:, mask, :, :, :]
+        #     target_onehot = target_onehot[:, mask, :, :, :]
+        ce_loss = self.ce(net_output, target.squeeze(1) - 1)
 
-        result = dice_loss + bce_loss
+        result = dice_loss + ce_loss
 
-        if "debugpy" in sys.modules:
-            tqdm.write(
-                f"Dice: {dice_loss.item():.2f},\tBCE: {bce_loss.item():.2f},\tTotal: {result.item():.2f}"
-            )
+        tqdm.write(
+            f"Dice: {dice_loss.item():.2f},\tCE: {ce_loss.item():.2f},\tTotal: {result.item():.2f}"
+        )
         return result

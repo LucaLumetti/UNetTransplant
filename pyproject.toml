@@ -1,2 +1,16 @@
 [tool.isort]
 profile = "black"
+
+# pylance exclude slurm_out and venv
+[tool.pyright]
+ignore = [
+    "venv",
+    "venv_cuda12.1",
+    "slurm_out",
+    "checkpoints/",
+    "debug",
+    ".mypy_cache",
+    "__pycache__",
+    "*.pth",
+    "*.npy"
+]

@@ -22,38 +22,35 @@ def main():
         # default="configs/taskvector_tf_mandible.toml",
         # default="/work/grana_maxillo/UNetMerging/configs/pretrain.toml",
     )
-    arg_parser.add_argument(
-        "--name",
-        help="Name for the experiment",
-        default=None,
-    )
     args = arg_parser.parse_args()
 
     config_path = find_config_path(args.config)
+    config_basename = config_path.stem
     configs.initialize_config(config_path)
 
-    if args.name is None:
-        args.name = f"{args.experiment}_{wandb.util.generate_id()}"
+    experiment_name = f"{args.experiment}_{wandb.util.generate_id()}_{config_basename}"
 
     wandb_mode = "online"
 
     if "debugpy" in sys.modules:
         configs.DataConfig.BATCH_SIZE = 1
         configs.DataConfig.NUM_WORKERS = 1
-        wandb_mode = "online"
+        wandb_mode = "disabled"
         print(f"[DEBUG] BATCH_SIZE: {configs.DataConfig.BATCH_SIZE}")
         print(f"[DEBUG] NUM_WORKERS: {configs.DataConfig.NUM_WORKERS}")
         print(f"[DEBUG] wandb mode: {wandb_mode}")
 
     wandb.init(
         project="UNetMerging",
-        name=args.name,
+        name=experiment_name,
         entity="maxillo",
         mode=wandb_mode,
         config=configs.generate_config_json(),
     )
 
-    experiment = ExperimentFactory.create(name=args.experiment)
+    experiment = ExperimentFactory.create(
+        experiment=args.experiment, name=experiment_name
+    )
 
     experiment.train()
     experiment.evaluate()
