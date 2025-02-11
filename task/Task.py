@@ -13,7 +13,7 @@ class Task:
     ):
         self.dataset_name = dataset_name
         self.dataset_idx = DATASET_IDX[dataset_name]
-        self.task_name = task_name
+        self.task_name = task_name.replace("/", "_") if task_name is not None else None
         self.labels_to_predict = self.label_ranges_to_dict(label_ranges)
         self.label_ranges = label_ranges
         print(self.labels_to_predict)

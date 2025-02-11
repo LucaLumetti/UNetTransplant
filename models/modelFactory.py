@@ -6,8 +6,7 @@ from torch import nn
 import configs
 import models
 from models.unet3d.unet3d import ResidualUNet3D
-from task.task import Task
-
+from task.Task import Task
 
 def init_weight_he(model: nn.Module, neg_slope=1e-2):
     for module in model.modules():

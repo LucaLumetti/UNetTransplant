@@ -93,13 +93,12 @@ class TaskVectorTrainExperiment(BaseExperiment):
 
                 gc.collect()
 
-            average_loss = sum(losses) / len(losses) if len(losses) > 0 else 0
             self.log_train_status(
-                loss=average_loss,
+                loss=losses,
                 epoch=epoch,
             )
 
-            self.scheduler.step()
+            # self.scheduler.step()
 
             if epoch % configs.TrainConfig.SAVE_EVERY == 0:
                 self.evaluate()
@@ -135,9 +134,9 @@ class TaskVectorTrainExperiment(BaseExperiment):
 
     def log_train_status(self, loss: Union[List[float], float], epoch: int):
         if isinstance(loss, list):
-            average_loss = sum(loss) / len(loss)
-            max_loss = max(loss)
-            min_loss = min(loss)
+            average_loss = sum(loss) / len(loss) if len(loss) > 0 else -1
+            max_loss = max(loss) if len(loss) > 0 else -1
+            min_loss = min(loss) if len(loss) > 0 else -1
         else:
             average_loss = loss
             max_loss = loss

@@ -6,7 +6,7 @@ import torch.nn as nn
 import configs
 from losses import LossFactory
 from preprocessing.dataset_class_mapping import DATASET_ORIGINAL_LABELS
-from task.task import Task
+from task.Task import Task
 
 
 class TaskHeads(nn.Module):

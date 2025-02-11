@@ -13,7 +13,7 @@ import configs
 from custom_types import Split
 from datasets.LoadableDataset import LoadableDataset
 from preprocessing.dataset_class_mapping import DATASET_IDX, DATASET_ORIGINAL_LABELS
-from task.task import Task
+from task.Task import Task
 
 
 class PatchDataset:
@@ -109,22 +109,6 @@ class PatchDataset:
             )
 
         return subjects
-
-    def get_tasks(
-        self,
-    ):
-        num_output_channels = configs.DataConfig.INCLUDE_ONLY_CLASSES
-        if num_output_channels is None or len(num_output_channels) == 0:
-            num_output_channels = len(DATASET_ORIGINAL_LABELS[self.dataset_name].keys())
-        else:
-            num_output_channels = len(num_output_channels)
-        task = Task(
-            dataset_name=self.dataset_name,
-            dataset_idx=DATASET_IDX[self.dataset_name],
-            # num_output_channels=len(DATASET_ORIGINAL_LABELS[self.dataset_name].keys()),
-            num_output_channels=num_output_channels,
-        )
-        return [task]
 
     def get_dataloader(
         self,

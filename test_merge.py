@@ -8,206 +8,54 @@ import torchio as tio
 import configs
 from datasets import DatasetFactory
 from datasets.PatchDataset import PatchDataset
-from experiments.baseExperiment import BaseExperiment
+from experiments.BaseExperiment import BaseExperiment
 from metrics.Metrics import Metrics
 from models.modelFactory import ModelFactory
 from models.taskheads import Task
 from taskvectors.TaskVector import TaskVector
 from taskvectors.TiesMerging import TiesMerging
 
-trained_taskvectors = {
-    "Lower Jawbone": "/work/grana_maxillo/UNetMerging/checkpoints/TaskVector_/work/grana_maxillo/UNetMerging/configs/taskvector_tf_mandible.toml/epoch0010_2025-02-06 21:14:31.176747_task_vector.pth",
-    "Upper Jawbone": "/work/grana_maxillo/UNetMerging/checkpoints/TaskVector_/work/grana_maxillo/UNetMerging/configs/taskvector_tf_skull.toml/epoch0010_2025-02-06 22:35:05.818140_task_vector.pth",
-    "IAC": "/work/grana_maxillo/UNetMerging/checkpoints/TaskVector_/work/grana_maxillo/UNetMerging/configs/taskvector_tf_lriac.toml/epoch0010_2025-02-06 22:31:12.042787_task_vector.pth",
-    "Pharynx": "/work/grana_maxillo/UNetMerging/checkpoints/TaskVector_/work/grana_maxillo/UNetMerging/configs/taskvector_tf_pharynx.toml/epoch0010_2025-02-06 22:29:27.968639_task_vector.pth",
-    "Teeth": "/work/grana_maxillo/UNetMerging/checkpoints/TaskVector_/work/grana_maxillo/UNetMerging/configs/taskvector_tf_teeth.toml/epoch0010_2025-02-07 06:23:03.002797_task_vector.pth",
-}
-
-taskvector_tasks = {
-    "Lower Jawbone": Task("ToothFairy2", 8, 1, ["Lower Jawbone"]),
-    "Upper Jawbone": Task("ToothFairy2", 8, 1, ["Upper Jawbone"]),
-    "IAC": Task(
-        "ToothFairy2",
-        8,
-        2,
-        ["Left Inferior Alveolar Canal", "Right Inferior Alveolar Canal"],
-    ),
-    "Pharynx": Task("ToothFairy2", 8, 1, ["Pharynx"]),
-    "Teeth": Task(
-        "ToothFairy2",
-        8,
-        32,
-        [
-            "Upper Left Central Incisor",
-            "Upper Left Lateral Incisor",
-            "Upper Left Canine",
-            "Upper Left First Premolar",
-            "Upper Left Second Premolar",
-            "Upper Left First Molar",
-            "Upper Left Second Molar",
-            "Upper Left Third Molar (Wisdom Tooth)",
-            "Upper Right Central Incisor",
-            "Upper Right Lateral Incisor",
-            "Upper Right Canine",
-            "Upper Right First Premolar",
-            "Upper Right Second Premolar",
-            "Upper Right First Molar",
-            "Upper Right Second Molar",
-            "Upper Right Third Molar (Wisdom Tooth)",
-            "Lower Left Central Incisor",
-            "Lower Left Lateral Incisor",
-            "Lower Left Canine",
-            "Lower Left First Premolar",
-            "Lower Left Second Premolar",
-            "Lower Left First Molar",
-            "Lower Left Second Molar",
-            "Lower Left Third Molar (Wisdom Tooth)",
-            "Lower Right Central Incisor",
-            "Lower Right Lateral Incisor",
-            "Lower Right Canine",
-            "Lower Right First Premolar",
-            "Lower Right Second Premolar",
-            "Lower Right First Molar",
-            "Lower Right Second Molar",
-            "Lower Right Third Molar (Wisdom Tooth)",
-        ],
-    ),
-}
-
-
-class TaskVectorTask:
-    def __init__(self, task_vector: TaskVector, task: Task):
-        self.task_vector = task_vector
-        self.task = task
-
-    def __add__(self, other):
-        assert self.task.dataset_name == other.task.dataset_name
-        assert self.task.dataset_idx == other.task.dataset_idx
-        new_tv = self.task_vector + other.task_vector
-        new_ioc = self.task.include_only_classes + other.task.include_only_classes
-        new_task = Task(
-            self.task.dataset_name,
-            self.task.dataset_idx,
-            self.task.num_output_channels + other.task.num_output_channels,
-            new_ioc,
-        )
-        return TaskVectorTask(new_tv, new_task)
-
 
 def main():
-    taskvectors_and_tasks = []
+    tv1 = TaskVector(
+        checkpoints="/work/grana_maxillo/UNetMerging/checkpoints/TaskVectorTrainExperiment_ek90lzx4_taskvector_tf_mandible/epoch0010_2025-02-10 05:59:06.254827_task_vector.pth"
+    )
+    tv2 = TaskVector(
+        checkpoints="/work/grana_maxillo/UNetMerging/checkpoints/TaskVectorTrainExperiment_37pgtnb8_taskvector_tf_lriac/epoch0010_2025-02-10 04:59:47.758080_task_vector.pth"
+    )
+    tv3 = TaskVector(
+        checkpoints="/work/grana_maxillo/UNetMerging/checkpoints/TaskVectorTrainExperiment_ff3xd0ge_taskvector_tf_pharynx/epoch0020_2025-02-10 11:57:53.601929_task_vector.pth"
+    )
+    combined = tv1 + 0.5 * tv2 + 0.5 * tv3
 
-    for task_name, task_vector_path in trained_taskvectors.items():
-        task_vector = TaskVector(
-            task_name=task_name,
-            checkpoints=task_vector_path,
-            alphas=[1],
-        )
-        task = taskvector_tasks[task_name]
-        taskvectors_and_tasks.append(TaskVectorTask(task_vector, task))
+    for task_vector in [combined]:
+        task = task_vector.task
+        task_vector.create_params_histogram()
+        backbone, heads = task_vector.get_backbone_and_heads(tasks=[task])
+        backbone.eval()
+        heads.eval()
+        backbone, heads = backbone.cuda(), heads.cuda()
 
-    # for tvt in taskvectors_and_tasks:
-    #     task_vector = tvt.task_vector
-    #     task = tvt.task
-    #     task_vector.create_params_histogram()
-    #     backbone, heads = task_vector.get_backbone_and_heads(
-    #         tasks=[task]
-    #     )
-    #     backbone.eval()
-    #     heads.eval()
-    #     backbone, heads = backbone.cuda(), heads.cuda()
+        dataset = PatchDataset(split="val", task=task)
+        subject = dataset.dataset[0]
 
-    #     configs.DataConfig.INCLUDE_ONLY_CLASSES = task.include_only_classes
-    #     dataset = PatchDataset(split="val", dataset_name="ToothFairy2")
-    #     subject = dataset.dataset[0]
-
-    #     print(f"Predicting {task_vector.task_name}")
-    #     with torch.no_grad():
-    #         out = BaseExperiment.functional_predict(
-    #             backbone=backbone, heads=heads, subject=subject, patch_overlap=20
-    #         )
-    #     x = subject['images'][tio.DATA]
-    #     y = subject['labels'][tio.DATA]
-    #     # metrics = Metrics().compute(out, y)
-    #     metrics = {'dice': -1}
-    #     print(f'Dice: {metrics["dice"]}')
-
-    #     output_path = Path(f"debug/merge/{task_vector.task_name}_{metrics['dice']}")
-    #     os.makedirs(output_path, exist_ok=True)
-    #     np.save(output_path / "image.npy", x[0])
-    #     np.save(output_path / "label.npy", y[0])
-    #     np.save(output_path / "pred.npy", out.cpu().detach().numpy().astype(np.uint8))
-
-    for idx1, tvt1 in enumerate(taskvectors_and_tasks):
-        for idx2, tvt2 in enumerate(taskvectors_and_tasks):
-            if idx1 >= idx2:
-                continue
-            # alpha1 = np.linspace(0, 1, 5)
-            # alpha2 = np.linspace(0, 1, 5)
-            combined = tvt1 + tvt2
-            task_vector = combined.task_vector
-            task = combined.task
-            task_vector.create_params_histogram()
-            backbone, heads = task_vector.get_backbone_and_heads(tasks=[task])
-            backbone.eval()
-            heads.eval()
-            backbone, heads = backbone.cuda(), heads.cuda()
-
-            configs.DataConfig.INCLUDE_ONLY_CLASSES = task.include_only_classes
-            dataset = PatchDataset(split="val", dataset_name="ToothFairy2")
-            subject = dataset.dataset[0]
-
-            print(f"Predicting {task_vector.task_name}")
-            with torch.no_grad():
-                out = BaseExperiment.functional_predict(
-                    backbone=backbone, heads=heads, subject=subject
-                )
-            x = subject["images"][tio.DATA]
-            y = subject["labels"][tio.DATA]
-            metrics = Metrics().compute(out, y, average="none")
-            print(f'Dice: {metrics["dice"]}')
-
-            output_path = Path(f"debug/merge/{task_vector.task_name}_{metrics['dice']}")
-            os.makedirs(output_path, exist_ok=True)
-            np.save(output_path / "image.npy", x[0])
-            np.save(output_path / "label.npy", y[0])
-            np.save(
-                output_path / "pred.npy", out.cpu().detach().numpy().astype(np.uint8)
+        print(f"Predicting {task_vector.task.task_name}")
+        with torch.no_grad():
+            out = BaseExperiment.functional_predict(
+                backbone=backbone, heads=heads, subject=subject
             )
+        x = subject["images"][tio.DATA]
+        y = subject["labels"][tio.DATA]
+        metrics = Metrics(task=task_vector.task).compute(out, y, average="none")
+        print(f'Dice: {metrics["dice"]}')
 
-    # task_vector_lowerjaw = TaskVector(
-    #     task_name="Lower Jaw",
-    #     checkpoints="/work/grana_maxillo/UNetMerging/checkpoints/TaskVector_/work/grana_maxillo/UNetMerging/configs/taskvector_tf_mandible.toml/epoch0004_2025-02-05 17:39:04.834860_task_vector.pth",
-    #     alphas=[1],
-    # )
-    # task_vector_lowerjaw.create_params_histogram()
-
-    # task_vector_pharynx = TaskVector(
-    #     task_name="Pharynx",
-    #     checkpoints="/work/grana_maxillo/UNetMerging/checkpoints/TaskVector_/work/grana_maxillo/UNetMerging/configs/taskvector_tf_pharynx.toml/epoch0002_2025-02-05 17:25:37.906717_task_vector.pth",
-    #     alphas=[1],
-    # )
-    # task_vector_pharynx.create_params_histogram()
-    # task_vector_combined = task_vector_lowerjaw + task_vector_pharynx
-
-    # # ties_vector_merged = TiesMerging(task_vector_combined)()
-
-    # dataset = PatchDataset(split="val", dataset_name="ToothFairy2")
-    # backbone, heads = task_vector_combined.get_backbone_and_heads(
-    #     tasks=dataset.get_tasks()
-    # )
-    # backbone.eval()
-    # heads.eval()
-
-    # subject = dataset.dataset[0]
-
-    # backbone, heads = backbone.cuda(), heads.cuda()
-
-    # with torch.no_grad():
-    #     out = BaseExperiment.functional_predict(
-    #         backbone=backbone, heads=heads, subject=subject
-    #     )
-
+        output_path = Path(
+            f"debug/merge/{task_vector.task.task_name}_{metrics['dice']}"
+        )
+        os.makedirs(output_path, exist_ok=True)
+        np.save(output_path / "image.npy", x[0])
+        np.save(output_path / "label.npy", y[0])
+        np.save(output_path / "pred.npy", out.cpu().detach().numpy().astype(np.uint8))
     # x = subject['images'][tio.DATA]
     # y = subject['labels'][tio.DATA]
     # metrics = Metrics().compute(out, y)
@@ -221,5 +69,11 @@ def main():
 
 
 if __name__ == "__main__":
+    # if hostname is ailb-login-02 disable cuda cudnn benchmark
+    if os.uname().nodename == "ailb-login-02":
+        torch.backends.cudnn.enabled = False
+        # set PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+        os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
     configs.initialize_config("/work/grana_maxillo/UNetMerging/configs/merge_test.toml")
     main()

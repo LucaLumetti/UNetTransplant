@@ -76,14 +76,14 @@ class TiesMerging:
         flat_params = torch.stack(
             [
                 torch.concatenate([p.view(-1) for p in params], dim=0)
-                for params in self.task_vector._params
+                for params in self.task_vector.params
             ]
         )
         flat_params = self.topk(flat_params.clone())
         sign = self.elect(flat_params.clone())
         merged_params = self.merge(flat_params.clone(), sign)
         state_dict = vector_to_state_dict(
-            merged_params, self.task_vector._params[0].state_dict()
+            merged_params, self.task_vector.params[0].state_dict()
         )
         tv = TaskVector(
             "Ties merged",

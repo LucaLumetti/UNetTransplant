@@ -17,7 +17,7 @@ from metrics.Metrics import Metrics
 from models.modelFactory import ModelFactory
 from optimizers.OptimizerFactory import OptimizerFactory
 from preprocessing.preprocessor import Preprocessor
-from task.task import Task
+from task.Task import Task
 
 
 class BaseExperiment:
@@ -59,7 +59,6 @@ class BaseExperiment:
 
     def setup_datasets(self, tasks: List[Task]):
         # TODO: DatasetFactory
-        dataset_name = configs.DataConfig.DATASET_NAMES[0]
         train_dataset = PatchDataset(split="train", task=tasks[0])
         val_dataset = PatchDataset(split="val", task=tasks[0])
         return train_dataset, val_dataset
@@ -245,6 +244,7 @@ class BaseExperiment:
                 label = subject["labels"][tio.DATA].squeeze()
                 metric_values = self.metrics.compute(pred, label)
             except Exception as e:
+                print(f"Error computing metrics in subject {i}: {e}")
                 continue
             for key, value in metric_values.items():
                 metrics[key].append(value)
@@ -294,12 +294,6 @@ class BaseExperiment:
             pred_aggregator.add_batch(heads_pred, location)
 
         pred = pred_aggregator.get_output_tensor()
-
-        # background_channel = torch.zeros((1, *spatial_shape), device=pred.device)
-        # pred = torch.concatenate([background_channel, pred], axis=0)
-        # pred = pred.argmax(axis=0)
-        # return pred
-
         values, indices = pred.max(dim=0)
         indices += 1
         indices[values < 0] = 0  # TODO: check that this should not be 0.5

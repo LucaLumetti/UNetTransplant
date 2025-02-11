@@ -10,7 +10,7 @@ from tqdm import tqdm
 import configs
 from datasets import DatasetFactory
 from datasets.PatchDataset import PatchDataset
-from experiments.baseExperiment import BaseExperiment
+from experiments.BaseExperiment import BaseExperiment
 from models.modelFactory import ModelFactory
 from preprocessing.preprocessor import Preprocessor
 
