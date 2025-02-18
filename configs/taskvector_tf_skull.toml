@@ -1,0 +1,32 @@
+[DataConfig]
+NAME = "ComposedDataset"
+DATASET_NAMES = ["ToothFairy2"]
+INCLUDE_ONLY_CLASSES = ['Upper Jawbone']
+BATCH_SIZE = 4
+NUM_WORKERS = 4
+DATA_PREPROCESSED_PATH = "/work/grana_maxillo/UNetMergingData/preprocessed_data"
+DATA_RAW_PATH = "/work/grana_maxillo/UNetMergingData/raw_data"
+
+[BackboneConfig]
+NAME = "ResidualUNet3D"
+IN_CHANNELS = 1
+PRETRAIN_CHECKPOINTS = "/work/grana_maxillo/UNetMerging/checkpoint_25_2025-02-05 11:31:21.066746.pth"
+N_EPOCHS_FREEZE = 2
+
+[HeadsConfig]
+NAME = "TaskHeads"
+COMPILE = false
+IN_CHANNELS = 64
+
+[OptimizerConfig]
+NAME = "AdamW"
+BACKBONE_LR = 0.0001
+HEAD_LR = 0.001
+WEIGHT_DECAY = 0.1
+
+[LossConfig]
+NAME = "DiceBCELoss"
+
+[TrainConfig]
+EPOCHS = 11
+SAVE_EVERY = 1

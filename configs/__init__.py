@@ -19,19 +19,18 @@ class _DataConfig:
     DATA_RAW_PATH: Path = Path("/work/grana_maxillo/UNetMergingData/raw_data")
     PATCH_SIZE: List[int] = field(default_factory=lambda: [96, 96, 96])
     PATCH_OVERLAP: float = 0.0
+    OUTPUT_DIR: Path = Path("")
 
 
 @dataclass
 class _BackboneConfig:
-    NAME: str = "UNet3D"
+    NAME: str = "ResidualUNet3D"
     COMPILE: bool = True
     IN_CHANNELS: int = 1
     PRETRAIN_CHECKPOINTS: Optional[Path] = None
     N_EPOCHS_FREEZE: int = 5
     DROPOUT_PROB: float = 0.1
-    # PRETRAIN_CHECKPOINTS: Optional[Path] = Path(
-    #     "/work/grana_maxillo/UNetMerging/checkpoints/checkpoint_190_2025-01-19 04:55:49.994931.pth"
-    # )
+    TASK_VECTOR_INIT: Optional[Path] = None
 
 
 @dataclass
@@ -39,27 +38,8 @@ class _HeadsConfig:
     NAME: str = "TaskHeads"
     COMPILE: bool = True
     PRETRAIN_CHECKPOINTS: Optional[Path] = None
-    IN_CHANNELS: int = 32
-
-
-@dataclass
-class _LiverHeadConfig:
-    NAME: str = "TaskHeads"
-    IN_CHANNELS: int = 32
-    COMPILE: bool = True
-    PRETRAIN_CHECKPOINTS: Optional[Path] = Path(
-        "/work/grana_maxillo/UNetMerging/checkpoints/checkpoint_1_2025-01-20 18:10:08.574350.pth"
-    )
-
-
-@dataclass
-class _KidneyHeadConfig:
-    NAME: str = "TaskHeads"
-    IN_CHANNELS: int = 32
-    COMPILE: bool = True
-    PRETRAIN_CHECKPOINTS: Optional[Path] = Path(
-        "/work/grana_maxillo/UNetMerging/checkpoints/FinetuneExperiment_56zzuiwu/epoch10_2025-01-20 18:19:58.959352.pth"
-    )
+    IN_CHANNELS: int = 64
+    LOAD_FROM_CHECKPOINTS: bool = False
 
 
 @dataclass
@@ -97,8 +77,6 @@ def load_config(file_path: Path):
         _DataConfig,
         _BackboneConfig,
         _HeadsConfig,
-        _LiverHeadConfig,
-        _KidneyHeadConfig,
         _OptimizerConfig,
         _LossConfig,
         _TrainConfig,

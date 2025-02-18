@@ -10,7 +10,11 @@ class Metrics:
         self.num_classes = task.num_output_channels + 1
 
     def compute(
-        self, y_pred: torch.Tensor, y_true: torch.Tensor, average: str = "macro"
+        self,
+        y_pred: torch.Tensor,
+        y_true: torch.Tensor,
+        average: str = "macro",
+        keep_nan: bool = False,
     ) -> dict[str, torch.Tensor]:
         metrics = {
             "dice": dice(
@@ -22,6 +26,8 @@ class Metrics:
                 multiclass=True,
             ),
         }
+        if keep_nan:
+            return metrics
         for key in metrics:
             metrics[key] = metrics[key][torch.isfinite(metrics[key])]
         return metrics

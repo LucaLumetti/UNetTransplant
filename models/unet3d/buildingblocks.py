@@ -96,7 +96,7 @@ def create_conv(
             else:
                 modules.append(("batchnorm", bn(out_channels)))
         elif char == "d":
-            modules.append(("dropout", nn.Dropout(p=dropout_prob)))
+            modules.append(("dropout", nn.Dropout3d(p=dropout_prob)))
         elif char == "D":
             modules.append(("dropout2d", nn.Dropout2d(p=dropout_prob)))
         else:

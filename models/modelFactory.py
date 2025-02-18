@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import torch
 from torch import nn
@@ -7,6 +7,7 @@ import configs
 import models
 from models.unet3d.unet3d import ResidualUNet3D
 from task.Task import Task
+
 
 def init_weight_he(model: nn.Module, neg_slope=1e-2):
     for module in model.modules():
@@ -88,11 +89,14 @@ class ModelFactory:
 
         return model
 
-    def create_from_checkpoint(checkpoint_path: str) -> torch.nn.Module:
+    @staticmethod
+    def create_from_checkpoint(
+        checkpoint_path: str,
+    ) -> Tuple[torch.nn.Module, torch.nn.Module]:
         backbone = ModelFactory.create(configs.BackboneConfig)
         checkpoint = torch.load(checkpoint_path)
+
         backbone.load_state_dict(checkpoint["backbone_state_dict"])
-        heads = []
         head = nn.Conv3d(32, 4, kernel_size=1)
         head_state_dict = checkpoint["heads_state_dict"]
         head_state_dict = {

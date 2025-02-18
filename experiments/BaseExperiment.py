@@ -111,7 +111,9 @@ class BaseExperiment:
     def get_checkpoint_path(
         self,
     ) -> Path:
-        path = Path(f"checkpoints/{self.experiment_name}")
+        path = Path(
+            f"{configs.DataConfig.OUTPUT_DIR}checkpoints/{self.experiment_name}"
+        )
         if not path.exists():
             path.mkdir(parents=True)
         return path
@@ -196,11 +198,19 @@ class BaseExperiment:
         pred_label = pred_logits.argmax(axis=1)
         pred_label = pred_label.reshape(-1, 96, 96, 96).astype(np.uint8)
         print(f"x: {x.shape}, y: {y.shape}, mask: {pred_label.shape}")
-        os.makedirs(f"debug/{folder_name}", exist_ok=True)
-        np.save(f"debug/{folder_name}/image.npy", x)
-        np.save(f"debug/{folder_name}/label.npy", y)
-        np.save(f"debug/{folder_name}/pred_logits.npy", pred_logits)
-        np.save(f"debug/{folder_name}/pred_label.npy", pred_label)
+        os.makedirs(
+            f"{configs.DataConfig.OUTPUT_DIR}debug/{folder_name}", exist_ok=True
+        )
+        np.save(f"{configs.DataConfig.OUTPUT_DIR}debug/{folder_name}/image.npy", x)
+        np.save(f"{configs.DataConfig.OUTPUT_DIR}debug/{folder_name}/label.npy", y)
+        np.save(
+            f"{configs.DataConfig.OUTPUT_DIR}debug/{folder_name}/pred_logits.npy",
+            pred_logits,
+        )
+        np.save(
+            f"{configs.DataConfig.OUTPUT_DIR}debug/{folder_name}/pred_label.npy",
+            pred_label,
+        )
         del x, y, pred_logits, pred_label
 
     def compute_metrics(

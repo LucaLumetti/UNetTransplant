@@ -141,4 +141,5 @@ class FinetuneExperiment(BaseExperiment):
                 self.evaluate()
                 self.backbone.train()
                 self.heads.train()
-                self.save(epoch)
+                if epoch > 0:
+                    self.save(epoch)

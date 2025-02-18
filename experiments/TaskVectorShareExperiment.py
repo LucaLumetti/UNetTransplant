@@ -10,28 +10,37 @@ from tqdm import tqdm
 
 import configs
 from experiments.BaseExperiment import BaseExperiment
+from models.modelFactory import ModelFactory
 from models.TaskVectorModel import TaskVectorModel
 
 # TODO: support DDP
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-class TaskVectorTrainExperiment(BaseExperiment):
+class TaskVectorShareExperiment(BaseExperiment):
     def __init__(self, experiment_name: str):
-        super(TaskVectorTrainExperiment, self).__init__(experiment_name=experiment_name)
+        super(TaskVectorShareExperiment, self).__init__(experiment_name=experiment_name)
 
     def setup_backbone(self):
-        self.backbone = super(TaskVectorTrainExperiment, self).setup_backbone()
-        if configs.BackboneConfig.PRETRAIN_CHECKPOINTS is not None:
-            self.load(
-                checkpoint_path=configs.BackboneConfig.PRETRAIN_CHECKPOINTS,
-            )
+        # self.backbone = super(TaskVectorShareExperiment, self).setup_backbone()
 
-        self.backbone = TaskVectorModel(
-            model=self.backbone,
+        self.load(
+            checkpoint_path=configs.BackboneConfig.PRETRAIN_CHECKPOINTS,
+            load_backbone=True,
         )
 
         return self.backbone
+
+    def setup_heads(self):
+        assert self.tasks is not None, "Tasks must be setup before heads!"
+        model = ModelFactory.create_heads(configs.HeadsConfig, tasks=self.tasks)
+        if configs.HeadsConfig.LOAD_FROM_CHECKPOINTS:
+            self.heads = model
+            self.load(
+                checkpoint_path=configs.BackboneConfig.PRETRAIN_CHECKPOINTS,
+                load_heads=True,
+            )
+        return model
 
     @torch.no_grad()
     def compute_task_vector_norm(
@@ -110,28 +119,33 @@ class TaskVectorTrainExperiment(BaseExperiment):
     def load(
         self,
         checkpoint_path: Path,
-        load_backbone: bool = True,
+        load_backbone: bool = False,
         load_optimizer: bool = False,
         load_scheduler=False,
         load_heads=False,
         load_epoch=False,
     ) -> None:
-        assert load_backbone is True, "Backbone must be loaded"
-        assert (
-            sum(
-                [
-                    load_optimizer,
-                    load_scheduler,
-                    load_heads,
-                    load_epoch,
-                ]
+        checkpoint = torch.load(checkpoint_path)
+        if any([load_epoch, load_optimizer, load_scheduler]):
+            raise ValueError(
+                "Cannot load epoch, optimizer, scheduler, in this Experiment."
             )
-            == 0
-        ), "Only backbone can be loaded"
-        super(TaskVectorTrainExperiment, self).load(
-            checkpoint_path=checkpoint_path,
-            load_backbone=True,
-        )
+        assert (
+            load_backbone or load_heads
+        ), "Backbone must be loaded in this Experiment."
+        if load_backbone:
+            delta_zero = checkpoint["pretrain_state_dict"]
+            delta_task = checkpoint["delta_state_dict"]
+            combined = {k: delta_zero[k] + delta_task[k] for k in delta_zero.keys()}
+
+            backbone = ModelFactory.create_backbone(configs.BackboneConfig)
+            backbone = TaskVectorModel(backbone)
+            backbone.params0 = torch.nn.ParameterList(combined.values())
+            self.backbone = backbone
+        elif load_heads:
+            self.heads.load_state_dict(checkpoint["heads_state_dict"])
+
+        print(f"Checkpoint loaded from {checkpoint_path}")
 
     def log_train_status(self, loss: Union[List[float], float], epoch: int):
         if isinstance(loss, list):

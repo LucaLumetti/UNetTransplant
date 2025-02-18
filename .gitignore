@@ -1,4 +1,5 @@
 # data
+wandb
 preprocessed_data/
 data/
 .vscode/
@@ -9,7 +10,9 @@ old/
 *.npy
 domande_angel.txt
 slurm_logs/
-*.toml
+slurm_logs_pretrain/
+*.out
+*.err
 
 
 # Byte-compiled / optimized / DLL files

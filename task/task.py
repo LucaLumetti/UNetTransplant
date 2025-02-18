@@ -15,8 +15,9 @@ class Task:
         self.dataset_idx = DATASET_IDX[dataset_name]
         self.task_name = task_name
         self.labels_to_predict = self.label_ranges_to_dict(label_ranges)
-        self.label_ranges = label_ranges
+        self.label_ranges = self.dict_to_label_ranges(self.labels_to_predict)
         print(self.labels_to_predict)
+        print(self.label_ranges)
 
     def get_mapping(self):
         return self.labels_to_predict

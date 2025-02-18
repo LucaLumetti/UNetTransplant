@@ -1,4 +1,5 @@
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -22,15 +23,29 @@ def main():
         # default="configs/taskvector_tf_mandible.toml",
         # default="/work/grana_maxillo/UNetMerging/configs/pretrain.toml",
     )
+    arg_parser.add_argument(
+        "--expname",
+        help="Experiment name to append, config_basename is used if not provided.",
+        default=None,
+    )
+    arg_parser.add_argument(
+        "--override",
+        nargs="+",
+        help="Override configuration values.",
+    )  # values can be overrided by passing them as DataConfig.DATASET_CLASSES = ['1,2'], DataConfig.BATCH_SIZE = 1
     args = arg_parser.parse_args()
 
     config_path = find_config_path(args.config)
     config_basename = config_path.stem
     configs.initialize_config(config_path)
+    if args.override:
+        override_config(configs, args.override)
 
-    experiment_name = f"{args.experiment}_{wandb.util.generate_id()}_{config_basename}"
+    postfix = args.expname if args.expname else config_basename
 
-    wandb_mode = "online"
+    experiment_name = f"{args.experiment}_{wandb.util.generate_id()}_{postfix}"
+
+    wandb_mode = "online" if "ailb" in os.uname().nodename else "offline"
 
     if "debugpy" in sys.modules:
         configs.DataConfig.BATCH_SIZE = 1
@@ -60,9 +75,26 @@ def find_config_path(config: str) -> Path:
     config_path = Path(config)
     if not config_path.exists():
         config_path = Path("configs") / config_path
-    if not config_path.exists():
+    if not config_path.exists() and ".toml" != config_path.suffix:
         return find_config_path(f"{config}.toml")
     return config_path
+
+
+def override_config(configs, overrides: list):
+    for override in overrides:
+        override = override.replace(" =", "=")
+        override = override.replace("= ", "=")
+        key, value = override.split("=", 1)
+
+        config_class = getattr(configs, key.split(".")[0])
+        config_key = key.split(".")[1]
+        type_of_value = type(getattr(config_class, config_key))
+        if type_of_value == list:
+            value = eval(value)
+        else:
+            value = type_of_value(value)
+        setattr(config_class, config_key, value)
+        print(f"Overriding {config_class.__class__.__name__}.{key} with {value}")
 
 
 if __name__ == "__main__":

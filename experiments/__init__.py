@@ -1,4 +1,6 @@
+from .AlphaTrainExperiment import AlphaTrainExperiment
 from .BaseExperiment import BaseExperiment
 from .ExperimentFactory import ExperimentFactory
 from .PretrainExperiment import PretrainExperiment
+from .TaskVectorShareExperiment import TaskVectorShareExperiment
 from .TaskVectorTrainExperiment import TaskVectorTrainExperiment

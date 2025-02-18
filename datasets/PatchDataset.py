@@ -61,7 +61,9 @@ class PatchDataset:
             configs.DataConfig.DATA_RAW_PATH / self.dataset_name / "dataset.json"
         )
         if not dataset_json_path.exists():
-            raise ValueError(f"Dataset {self.dataset_name} not found.")
+            raise ValueError(
+                f"Dataset {self.dataset_name} not found. Cannot load {dataset_json_path}"
+            )
         with open(dataset_json_path, "r") as f:
             dataset_info = json.load(f)
 

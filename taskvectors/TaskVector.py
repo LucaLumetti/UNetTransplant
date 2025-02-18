@@ -43,20 +43,6 @@ class TaskVector:
             self.task = cast(Task, task)
         self.params = cast(torch.nn.ParameterList, params)
 
-    # @property
-    # def params(self):
-    #     combined_params = []
-    #     total_alpha = sum(self._alphas)
-    #     alphas = self._alphas
-    #     if total_alpha != 0 and self.use_norm:
-    #         alphas = [a / total_alpha for a in alphas]
-    #     for a, p in zip(alphas, self._params):
-    #         weighted_params = [a * param for param in p]
-    #         combined_params.append(weighted_params)
-
-    #     result_params = [sum(p) for p in zip(*combined_params)]
-    #     return torch.nn.ParameterList(result_params)
-
     def get_params_from_checkpoints(self, checkpoints: str):
         ckpt = torch.load(checkpoints)
 
@@ -101,7 +87,6 @@ class TaskVector:
         return self.__iadd__(-other)
 
     def __neg__(self):
-        # TODO
         return self * -1
 
     def __imul__(self, other: float):
@@ -126,6 +111,13 @@ class TaskVector:
 
         return backbone, heads
 
+    def get_base_backbone(self):
+        backbone = ModelFactory.create_backbone(configs.BackboneConfig)
+        backbone = TaskVectorModel(backbone)
+        backbone.params0 = torch.nn.ParameterList(self._backbone_params.values())
+
+        return backbone
+
     def get_heads_from_params(self, tasks):
         heads_state_dict = defaultdict(list)
         for head_params in self._head_params:
@@ -147,5 +139,7 @@ class TaskVector:
         params = self.params
         flattened_params = torch.cat([p.flatten() for p in params])
         plt.hist(flattened_params.cpu().detach().numpy(), bins=100)
-        plt.savefig(f"debug/params_histogram_{self.task.task_name}.png")
+        plt.savefig(
+            f"{configs.DataConfig.OUTPUT_DIR}debug/params_histogram_{self.task.task_name}.png"
+        )
         plt.close()

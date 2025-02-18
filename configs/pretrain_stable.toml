@@ -1,0 +1,33 @@
+[DataConfig]
+NAME = "ComposedDataset"
+DATASET_NAMES = ["ZhimingCui"]
+DATASET_CLASSES = ['all']
+BATCH_SIZE = 2
+NUM_WORKERS = 4
+DATA_PREPROCESSED_PATH = "/work/grana_maxillo/UNetMergingData/preprocessed_data"
+DATA_RAW_PATH = "/work/grana_maxillo/UNetMergingData/raw_data"
+
+[BackboneConfig]
+NAME = "ResidualUNet3D"
+COMPILE = false
+IN_CHANNELS = 1
+DROPOUT_PROB = 0.3
+# PRETRAIN_CHECKPOINTS = None
+
+[HeadsConfig]
+NAME = "TaskHeads"
+COMPILE = false
+IN_CHANNELS = 64
+
+[OptimizerConfig]
+NAME = "AdamW"
+LR = 0.005
+WEIGHT_DECAY = 0.5
+
+[LossConfig]
+NAME = "DiceBCELoss"
+
+[TrainConfig]
+EPOCHS = 100
+SAVE_EVERY = 2
+# RESUME = "/work/grana_maxillo/UNetMerging/checkpoint_25_2025-02-05 11:31:21.066746.pth"

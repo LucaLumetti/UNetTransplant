@@ -1,0 +1,33 @@
+[DataConfig]
+NAME = "ComposedDataset"
+DATASET_NAMES = ["ToothFairy2"]
+DATASET_CLASSES = ['3,4']
+BATCH_SIZE = 4
+NUM_WORKERS = 4
+DATA_RAW_PATH = "/leonardo_scratch/large/userexternal/gcapitan/data"
+OUTPUT_DIR = "/leonardo_scratch/large/userexternal/llumetti/output_UNetMerging/"
+
+[BackboneConfig]
+NAME = "ResidualUNet3D"
+IN_CHANNELS = 1
+PRETRAIN_CHECKPOINTS = "/leonardo_scratch/large/userexternal/llumetti/output_UNetMerging/checkpoints/TaskVectorTrainExperiment_0ir4d739__Mandible_Naive/epoch0030_2025-02-14 08:28:22.238671_task_vector.pth"
+N_EPOCHS_FREEZE = 1
+
+[HeadsConfig]
+NAME = "TaskHeads"
+COMPILE = false
+IN_CHANNELS = 64
+LOAD_FROM_CHECKPOINTS = true
+
+[OptimizerConfig]
+NAME = "AdamW"
+BACKBONE_LR = 0.0001
+HEAD_LR = 0.001
+WEIGHT_DECAY = 0.1
+
+[LossConfig]
+NAME = "DiceBCELoss"
+
+[TrainConfig]
+EPOCHS = 21
+SAVE_EVERY = 10

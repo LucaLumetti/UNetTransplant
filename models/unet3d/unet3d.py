@@ -227,7 +227,7 @@ class ResidualUNet3D(AbstractUNet):
         out_channels=None,
         final_activation=None,
         f_maps=64,
-        layer_order="gcr",
+        layer_order="gcdr",
         num_groups=8,
         num_levels=4,
         conv_padding=1,

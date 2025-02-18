@@ -10,28 +10,47 @@ from tqdm import tqdm
 
 import configs
 from experiments.BaseExperiment import BaseExperiment
-from models.TaskVectorModel import TaskVectorModel
+from models.modelFactory import ModelFactory
+from models.TaskVectorAlpha import TaskVectorAlpha
+from taskvectors.TaskVector import TaskVector
 
 # TODO: support DDP
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-class TaskVectorTrainExperiment(BaseExperiment):
+class AlphaTrainExperiment(BaseExperiment):
     def __init__(self, experiment_name: str):
-        super(TaskVectorTrainExperiment, self).__init__(experiment_name=experiment_name)
-
-    def setup_backbone(self):
-        self.backbone = super(TaskVectorTrainExperiment, self).setup_backbone()
-        if configs.BackboneConfig.PRETRAIN_CHECKPOINTS is not None:
-            self.load(
-                checkpoint_path=configs.BackboneConfig.PRETRAIN_CHECKPOINTS,
-            )
-
-        self.backbone = TaskVectorModel(
-            model=self.backbone,
+        task_vector_paths = [
+            "/work/grana_maxillo/UNetMerging/checkpoints/TaskVectorTrainExperiment_ek90lzx4_taskvector_tf_mandible/epoch0020_2025-02-10 14:24:21.502936_task_vector.pth",
+            "/work/grana_maxillo/UNetMerging/checkpoints/TaskVectorTrainExperiment_ff3xd0ge_taskvector_tf_pharynx/epoch0020_2025-02-10 11:57:53.601929_task_vector.pth",
+            "/work/grana_maxillo/UNetMerging/checkpoints/TaskVectorTrainExperiment_37pgtnb8_taskvector_tf_lriac/epoch0020_2025-02-10 14:07:23.136610_task_vector.pth",
+        ]
+        self.task_vectors = [TaskVector(checkpoints=path) for path in task_vector_paths]
+        self.combined_task_vector = (
+            self.task_vectors[0] + self.task_vectors[1] + self.task_vectors[2]
         )
 
+        super(AlphaTrainExperiment, self).__init__(experiment_name=experiment_name)
+
+        self.backbone = TaskVectorAlpha(
+            task_vectors=self.task_vectors,
+        )
+
+        self.heads = self.combined_task_vector.get_heads_from_params(
+            tasks=[self.combined_task_vector.task]
+        )
+
+    def setup_tasks(self):
+        combined_task = self.combined_task_vector.task
+        return [combined_task]
+
+    def setup_backbone(self):
+        self.backbone = super(AlphaTrainExperiment, self).setup_backbone()
         return self.backbone
+
+    def setup_heads(self):
+        self.heads = ModelFactory.create_heads(configs.HeadsConfig, tasks=self.tasks)
+        return self.heads
 
     @torch.no_grad()
     def compute_task_vector_norm(
@@ -128,7 +147,7 @@ class TaskVectorTrainExperiment(BaseExperiment):
             )
             == 0
         ), "Only backbone can be loaded"
-        super(TaskVectorTrainExperiment, self).load(
+        super(AlphaTrainExperiment, self).load(
             checkpoint_path=checkpoint_path,
             load_backbone=True,
         )

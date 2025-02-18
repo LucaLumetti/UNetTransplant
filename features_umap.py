@@ -79,13 +79,17 @@ def main():
 
         bb_pred = pred_aggregator.cpu().numpy()
         np.save(
-            f"debug/umap/image_array.npy", subject["images"][tio.DATA].cpu().numpy()
+            f"{configs.DataConfig.OUTPUT_DIR}debug/umap/image_array.npy",
+            subject["images"][tio.DATA].cpu().numpy(),
         )
-        np.save(f"debug/umap/pred.npy", bb_pred)
+        np.save(f"{configs.DataConfig.OUTPUT_DIR}debug/umap/pred.npy", bb_pred)
 
         kmeans_labels = kmeans(bb_pred.reshape(64, -1).T, 10)
         kmeans_labels = kmeans_labels.reshape(*bb_pred.shape[-3:])
-        np.save(f"debug/umap/kmeans_labels.npy", kmeans_labels + 1)
+        np.save(
+            f"{configs.DataConfig.OUTPUT_DIR}debug/umap/kmeans_labels.npy",
+            kmeans_labels + 1,
+        )
         print("Kmeans computed 🎉")
         continue
 

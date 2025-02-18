@@ -1,0 +1,17 @@
+[DataConfig]
+NAME = "ComposedDataset"
+DATASET_NAMES = ["ToothFairy2"]
+BATCH_SIZE = 1
+NUM_WORKERS = 2
+DATA_PREPROCESSED_PATH = ""
+DATA_RAW_PATH = "/leonardo_scratch/large/userexternal/gcapitan/data"
+OUTPUT_DIR = "/leonardo_scratch/large/userexternal/llumetti/output_UNetMerging/"
+
+[BackboneConfig]
+NAME = "ResidualUNet3D"
+IN_CHANNELS = 1
+
+[HeadsConfig]
+NAME = "TaskHeads"
+COMPILE = false
+IN_CHANNELS = 64

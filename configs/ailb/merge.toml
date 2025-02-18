@@ -1,0 +1,17 @@
+[DataConfig]
+NAME = "ComposedDataset"
+DATASET_NAMES = ["ToothFairy2"]
+BATCH_SIZE = 1
+NUM_WORKERS = 2
+DATA_PREPROCESSED_PATH = ""
+DATA_RAW_PATH = "/work/grana_maxillo/UNetMergingData/raw_data"
+OUTPUT_DIR = "/work/grana_maxillo/UNetMerging_output/"
+
+[BackboneConfig]
+NAME = "ResidualUNet3D"
+IN_CHANNELS = 1
+
+[HeadsConfig]
+NAME = "TaskHeads"
+COMPILE = false
+IN_CHANNELS = 64

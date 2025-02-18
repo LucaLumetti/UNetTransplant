@@ -1,0 +1,65 @@
+[DataConfig]
+NAME = "ComposedDataset"
+DATASET_NAMES = ["ToothFairy2"]
+INCLUDE_ONLY_CLASSES = [
+    "Upper Left Central Incisor",
+    "Upper Left Lateral Incisor",
+    "Upper Left Canine",
+    "Upper Left First Premolar",
+    "Upper Left Second Premolar",
+    "Upper Left First Molar",
+    "Upper Left Second Molar",
+    "Upper Left Third Molar (Wisdom Tooth)",
+    "Upper Right Central Incisor",
+    "Upper Right Lateral Incisor",
+    "Upper Right Canine",
+    "Upper Right First Premolar",
+    "Upper Right Second Premolar",
+    "Upper Right First Molar",
+    "Upper Right Second Molar",
+    "Upper Right Third Molar (Wisdom Tooth)",
+    "Lower Left Central Incisor",
+    "Lower Left Lateral Incisor",
+    "Lower Left Canine",
+    "Lower Left First Premolar",
+    "Lower Left Second Premolar",
+    "Lower Left First Molar",
+    "Lower Left Second Molar",
+    "Lower Left Third Molar (Wisdom Tooth)",
+    "Lower Right Central Incisor",
+    "Lower Right Lateral Incisor",
+    "Lower Right Canine",
+    "Lower Right First Premolar",
+    "Lower Right Second Premolar",
+    "Lower Right First Molar",
+    "Lower Right Second Molar",
+    "Lower Right Third Molar (Wisdom Tooth)",
+]
+BATCH_SIZE = 4
+NUM_WORKERS = 4
+DATA_PREPROCESSED_PATH = "/work/grana_maxillo/UNetMergingData/preprocessed_data"
+DATA_RAW_PATH = "/work/grana_maxillo/UNetMergingData/raw_data"
+
+[BackboneConfig]
+NAME = "ResidualUNet3D"
+IN_CHANNELS = 1
+PRETRAIN_CHECKPOINTS = "/work/grana_maxillo/UNetMerging/checkpoint_25_2025-02-05 11:31:21.066746.pth"
+N_EPOCHS_FREEZE = 2
+
+[HeadsConfig]
+NAME = "TaskHeads"
+COMPILE = false
+IN_CHANNELS = 64
+
+[OptimizerConfig]
+NAME = "AdamW"
+BACKBONE_LR = 0.0001
+HEAD_LR = 0.001
+WEIGHT_DECAY = 0.1
+
+[LossConfig]
+NAME = "DiceBCELoss"
+
+[TrainConfig]
+EPOCHS = 11
+SAVE_EVERY = 1
