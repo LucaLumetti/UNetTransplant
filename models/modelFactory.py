@@ -21,7 +21,6 @@ def init_weight_he(model: nn.Module, neg_slope=1e-2):
             if module.bias is not None:
                 module.bias = nn.init.constant_(module.bias, 0)
 
-
 class ModelFactory:
     @staticmethod
     def create_backbone(model_config: configs._BackboneConfig) -> torch.nn.Module:

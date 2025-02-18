@@ -44,7 +44,7 @@ class TaskVector:
         self.params = cast(torch.nn.ParameterList, params)
 
     def get_params_from_checkpoints(self, checkpoints: str):
-        ckpt = torch.load(checkpoints)
+        ckpt = torch.load(checkpoints, weights_only=False)
 
         delta_params = ckpt["delta_state_dict"]
         self._head_params = [ckpt["heads_state_dict"]]

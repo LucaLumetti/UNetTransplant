@@ -4,3 +4,4 @@ from .ExperimentFactory import ExperimentFactory
 from .PretrainExperiment import PretrainExperiment
 from .TaskVectorShareExperiment import TaskVectorShareExperiment
 from .TaskVectorTrainExperiment import TaskVectorTrainExperiment
+from .FlatnessExperiment import FlatnessExperiment

@@ -12,6 +12,7 @@ import configs
 from datasets import DatasetFactory
 from datasets.PatchDataset import PatchDataset
 from experiments.BaseExperiment import BaseExperiment
+from experiments.FlatnessExperiment import FlatnessExperiment
 from metrics.Metrics import Metrics
 from models.modelFactory import ModelFactory
 from models.taskheads import Task
@@ -114,6 +115,14 @@ def plot(name, range_a1, range_a2, grid_search_dices):
     # Save the grid as a .npy file
     np.save(f"debug/merge/{name}.npy", grid_search_dices)
 
+            #output_path = Path(
+            #    f"debug/merge/{task_vector.task.task_name}_{metrics['dice']}"
+            #)
+            #os.makedirs(output_path, exist_ok=True)
+            #np.save(output_path / "image.npy", x[0])
+            #np.save(output_path / "label.npy", y[0])
+            #np.save(output_path / "pred.npy", out.cpu().detach().numpy().astype(np.uint8))
+    print(f'Mean Dice: {np.mean(dice)}')
 
 if __name__ == "__main__":
     # if hostname is ailb-login-02 disable cuda cudnn benchmark
