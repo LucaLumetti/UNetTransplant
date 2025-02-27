@@ -4,6 +4,8 @@ from experiments.BaseExperiment import BaseExperiment
 from tqdm import tqdm
 import torchio as tio
 import torch
+import wandb
+
 
 from metrics.Metrics import Metrics
 
@@ -69,12 +71,14 @@ class FlatnessExperiment(BaseExperiment):
 
     def evaluate(self):
         #fisher = self.compute_fisher()
-        loss_original = self.compute_loss()
-        sigmas = [0.1, 0.2, 0.3, 0.4, 0.5]
-        print(f"ORIGINAL LOSS: {loss_original}")
+        loss_original, loss_min, loss_max = self.compute_loss()
+        sigmas = [0.1, 0.2, 0.5, 1]
+        print(f"ORIGINAL LOSS: {loss_original}, MIN: {loss_min}, MAX: {loss_max}")
+        wandb.log(({"loss_original": loss_original, "loss_min": loss_min, "loss_max": loss_max}))
         for sigma in sigmas:
-            ploss = self.compute_perturbed_loss(sigma=sigma)
-            print(f"PERTUBATION LOSS SIGMA {sigma}: {ploss}")
+            ploss, ploss_min, ploss_max = self.compute_perturbed_loss(sigma=sigma)
+            print(f"PERTUBATION LOSS SIGMA {sigma}: {ploss}, MIN: {ploss_min}, MAX: {ploss_max}")
+            wandb.log({"gap pert vs original": ploss - loss_original, "sigma": sigma, "pert_loss_min": ploss_min, "pert_loss_max": ploss_max})
         #print(f"FISHER:{fisher} -- PERTUBATION LOSS: {ploss} -- ORIGINAL LOSS: {loss_original}")
     
     @torch.no_grad()
@@ -85,6 +89,8 @@ class FlatnessExperiment(BaseExperiment):
         total_length = len(data)
         total_patch_forwarded = 0
         losses = []
+        losses_min, losses_max = [], []
+
         perturb_model(self.backbone, sigma)
         for i, subject in enumerate(tqdm(data, desc="Val")):
             grid_sampler = tio.GridSampler(subject, patch_size=(96, 96, 96), patch_overlap=0)
@@ -98,8 +104,13 @@ class FlatnessExperiment(BaseExperiment):
                 heads_pred, loss = self.heads(backbone_pred, dataset_indices, label)
                 patch_losses.append(loss)
             losses.append(torch.stack(patch_losses).mean())
+            losses_min.append(torch.stack(patch_losses).min())
+            losses_max.append(torch.stack(patch_losses).max())
         losses = torch.mean(torch.stack(losses).mean())
-        return losses
+        losses_min = torch.mean(torch.stack(losses_min).mean())
+        losses_max = torch.mean(torch.stack(losses_max).mean())
+        return losses, losses_min, losses_max
+
 
     @torch.no_grad()
     def compute_loss(self):
@@ -109,6 +120,8 @@ class FlatnessExperiment(BaseExperiment):
         total_length = len(data)
         total_patch_forwarded = 0
         losses = []
+        losses_min, losses_max = [], []
+
         for i, subject in enumerate(tqdm(data, desc="Val")):
             grid_sampler = tio.GridSampler(subject, patch_size=(96, 96, 96), patch_overlap=0)
             patch_losses = []
@@ -121,8 +134,13 @@ class FlatnessExperiment(BaseExperiment):
                 heads_pred, loss = self.heads(backbone_pred, dataset_indices, label)
                 patch_losses.append(loss)
             losses.append(torch.stack(patch_losses).mean())
+            losses_min.append(torch.stack(patch_losses).min())
+            losses_max.append(torch.stack(patch_losses).max())
         losses = torch.mean(torch.stack(losses).mean())
-        return losses
+        losses_min = torch.mean(torch.stack(losses_min).mean())
+        losses_max = torch.mean(torch.stack(losses_max).mean())
+        return losses, losses_min, losses_max
+
 
     def compute_fisher(self):
         self.backbone.eval()
@@ -140,7 +158,7 @@ class FlatnessExperiment(BaseExperiment):
                 image, label, dataset_indices = self.get_image_label_idx(patch)
                 image, label, dataset_indices = image.unsqueeze(0), label.unsqueeze(0), dataset_indices.unsqueeze(0)
                 backbone_pred = self.backbone(image)
-                heads_pred, loss = self.heads(backbone_pred, dataset_indices, label)
+                heads_pred, loss, loss_min, loss_max = self.heads(backbone_pred, dataset_indices, label)
                 loss.backward()
                 exp_cond_prob = 1 # Chissa se è giusta
                 fish += exp_cond_prob * get_module_grads(self.backbone) ** 2

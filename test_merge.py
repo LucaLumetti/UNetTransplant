@@ -17,14 +17,32 @@ from metrics.Metrics import Metrics
 from models.modelFactory import ModelFactory
 from models.taskheads import Task
 from taskvectors.TaskVector import TaskVector
-from taskvectors.TiesMerging import TiesMerging
+from taskvectors.TaskVectorTies import TaskVectorTies
 
 
-def main(tv1_path, tv2_path):
-    tv1 = TaskVector(checkpoints=tv1_path)
-    tv2 = TaskVector(checkpoints=tv2_path)
+def main():
+    tv1 = TaskVector(
+        checkpoints="/work/grana_maxillo/UNetMerging/checkpoints/TaskVectorTrainExperiment_ek90lzx4_taskvector_tf_mandible/epoch0010_2025-02-10 05:59:06.254827_task_vector.pth"
+    )
+    tv2 = TaskVector(
+        checkpoints="/work/grana_maxillo/UNetMerging/checkpoints/TaskVectorTrainExperiment_37pgtnb8_taskvector_tf_lriac/epoch0010_2025-02-10 04:59:47.758080_task_vector.pth"
+    )
+    tv1_ties = TaskVectorTies(
+        checkpoints="/work/grana_maxillo/UNetMerging/checkpoints/TaskVectorTrainExperiment_ek90lzx4_taskvector_tf_mandible/epoch0010_2025-02-10 05:59:06.254827_task_vector.pth"
+    )
+    tv2_ties = TaskVectorTies(
+        checkpoints="/work/grana_maxillo/UNetMerging/checkpoints/TaskVectorTrainExperiment_37pgtnb8_taskvector_tf_lriac/epoch0010_2025-02-10 04:59:47.758080_task_vector.pth"
+    )
+    combined = tv1 + 1.0 * tv2
+    combined_ties = tv1_ties + tv2_ties
 
-    dataset = PatchDataset(split="val", task=(tv1 + tv2).task)
+    for task_vector in [combined_ties]:
+        task = task_vector.task
+        task_vector.create_params_histogram()
+        backbone, heads = task_vector.get_backbone_and_heads(tasks=[task])
+        backbone.eval()
+        heads.eval()
+        backbone, heads = backbone.cuda(), heads.cuda()
 
     range_a1 = np.linspace(0, 1.5, 16)
     range_a2 = np.linspace(0, 1.5, 16)
@@ -115,8 +133,14 @@ def plot(name, range_a1, range_a2, grid_search_dices):
     # Save the grid as a .npy file
     np.save(f"debug/merge/{name}.npy", grid_search_dices)
 
-    print(f"Mean Dice: {np.mean(dice)}")
-
+            #output_path = Path(
+            #    f"debug/merge/{task_vector.task.task_name}_{metrics['dice']}"
+            #)
+            #os.makedirs(output_path, exist_ok=True)
+            #np.save(output_path / "image.npy", x[0])
+            #np.save(output_path / "label.npy", y[0])
+            #np.save(output_path / "pred.npy", out.cpu().detach().numpy().astype(np.uint8))
+    print(f'Mean Dice: {np.mean(dice)}')
 
 if __name__ == "__main__":
     # if hostname is ailb-login-02 disable cuda cudnn benchmark

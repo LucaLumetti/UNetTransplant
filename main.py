@@ -59,7 +59,7 @@ def main():
         project="UNetMerging",
         name=experiment_name,
         entity="maxillo",
-        mode=wandb_mode,
+        #mode=wandb_mode,
         config=configs.generate_config_json(),
     )
 

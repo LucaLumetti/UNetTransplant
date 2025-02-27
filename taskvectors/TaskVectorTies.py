@@ -45,7 +45,7 @@ def ties_merge(params: List[torch.nn.ParameterList]):
         sign_to_mult = torch.sign(combined.sum(dim=0))
         majority_sign = torch.sign(combined.sum())
         sign_to_mult[sign_to_mult == 0] = majority_sign
-
+        
         # electing
         valid_rows = torch.where(
             sign_to_mult.unsqueeze(0) > 0, combined > 0, combined < 0
