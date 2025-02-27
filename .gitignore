@@ -11,6 +11,7 @@ old/
 domande_angel.txt
 slurm_logs/
 slurm_logs_pretrain/
+slurm_logs*
 *.out
 *.err
 

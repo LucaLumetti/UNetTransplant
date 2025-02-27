@@ -42,8 +42,8 @@ def run_job(tv1_checkpoint, tv2_checkpoint):
         "--tv2_checkpoint",
         tv2_checkpoint,
         "--merge_class",
-        "TaskVectorTies",
-        # "TaskVector",
+        # "TaskVectorTies",
+        "TaskVector",
     ]
 
     subprocess.run(args_to_run)
@@ -53,17 +53,18 @@ base_path = "/leonardo/home/userexternal/llumetti/projects/UNetMerging"
 base_config = f"{base_path}/configs/leonardo/merge.toml"
 
 task_vectors_classes = [
-    ("Mandible", ["1"]),
-    ("Skull", ["2"]),
-    ("Canals", ["3-4"]),
-    ("Pharynx", ["7"]),
-    ("Implants", ["8,9,10"]),
-    ("Teeth", ["11-18,21-28,31-38,41-48"]),
+    ("Spleen", ["1"]),
+    ("Kidney", ["2,3"]),
+    ("Esophagus", ["5"]),
+    ("Liver", ["6"]),
+    ("Stomach", ["7"]),
+    ("Pancreas", ["11"]),
 ]
 task_vectors_classes = [x[0] for x in task_vectors_classes]
 
 checkpoints_path = (
     Path("/leonardo_scratch/large/userexternal/llumetti/output_UNetMergingcheckpoints")
+    # Path("/work/grana_maxillo/UNetMergingOutput")
 )
 checkpoints_path = [
     x
@@ -77,8 +78,8 @@ for checkpoint_path in checkpoints_path:
     tv_pretrain_kind = checkpoint_path.name.split("__", 1)[1].split("_", 1)[1]
     if "+" in tv_task_name:
         continue
-    if "Naive" not in tv_pretrain_kind:
-       continue
+    if "Sharp_ki4vnv_AMOS_BTCVAbdomen_100" not in tv_pretrain_kind:
+        continue
     if tv_pretrain_kind not in grouped_checkpoints:
         grouped_checkpoints[tv_pretrain_kind] = {}
     grouped_checkpoints[tv_pretrain_kind][tv_task_name] = checkpoint_path

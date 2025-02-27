@@ -15,6 +15,7 @@ import configs
 from datasets.PatchDataset import PatchDataset
 from metrics.Metrics import Metrics
 from models.modelFactory import ModelFactory
+from models.utils import get_number_of_learnable_parameters
 from optimizers.OptimizerFactory import OptimizerFactory
 from preprocessing.preprocessor import Preprocessor
 from task.Task import Task
@@ -56,6 +57,15 @@ class BaseExperiment:
             label_ranges=configs.DataConfig.DATASET_CLASSES,
         )
         return [task]
+        # tasks = []
+        # for dataset_name, dataset_classes in zip(configs.DataConfig.DATASET_NAMES, configs.DataConfig.DATASET_NAMES):
+        #     tasks.append(
+        #         Task(
+        #             dataset_name=dataset_name,
+        #             label_ranges=dataset_classes,
+        #         )
+        #     )
+        # return tasks
 
     def setup_datasets(self, tasks: List[Task]):
         # TODO: DatasetFactory
@@ -65,6 +75,7 @@ class BaseExperiment:
 
     def setup_backbone(self):
         backbone = ModelFactory.create_backbone(configs.BackboneConfig)
+        print(f"UNet3D has: {get_number_of_learnable_parameters(backbone)} params")
         return backbone.cuda()
 
     def setup_heads(self):

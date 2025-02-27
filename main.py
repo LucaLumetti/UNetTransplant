@@ -43,9 +43,9 @@ def main():
 
     postfix = args.expname if args.expname else config_basename
 
-    experiment_name = f"{args.experiment}_{wandb.util.generate_id()}_{postfix}"
+    experiment_name = f"{args.experiment}_{wandb.util.generate_id()}_{postfix}"  # type: ignore
 
-    wandb_mode = "online" if "ailb" in os.uname().nodename else "offline"
+    wandb_mode = "online" if "lrdn" not in os.uname().nodename else "offline"
 
     if "debugpy" in sys.modules:
         configs.DataConfig.BATCH_SIZE = 1

@@ -16,24 +16,32 @@ from metrics.Metrics import Metrics
 from models.modelFactory import ModelFactory
 from models.taskheads import Task
 from taskvectors.TaskVector import TaskVector
-from taskvectors.TiesMerging import TiesMerging
+from taskvectors.TaskVectorTies import TaskVectorTies
 
 
-def main(tv1_path, tv2_path):
-    tv1 = TaskVector(checkpoints=tv1_path)
-    tv2 = TaskVector(checkpoints=tv2_path)
+def main(tv1_path, tv2_path, merge_class):
+    assert merge_class in [
+        "TaskVector",
+        "TaskVectorTies",
+    ], f"Invalid merge class: {merge_class}"
+    TaskVectorClass = TaskVector if merge_class == "TaskVector" else TaskVectorTies
+    tv1 = TaskVectorClass(checkpoints=tv1_path)
+    tv2 = TaskVectorClass(checkpoints=tv2_path)
 
     dataset = PatchDataset(split="val", task=(tv1 + tv2).task)
     dataset = [subject for subject in dataset.dataset]
 
     # subject = dataset.dataset[0]
 
-    range_a1 = np.linspace(0.0, 1.2, 13)
-    range_a2 = np.linspace(0.0, 1.2, 13)
+    range_a1 = np.linspace(0, 2, 21)
+    range_a2 = np.linspace(0, 2, 21)
     grid_search_dices = torch.zeros((2, len(range_a1), len(range_a2)))
+
+    tqdm_bar = tqdm(total=len(range_a1) * len(range_a2))
 
     for idx1, a1 in enumerate(range_a1):
         for idx2, a2 in enumerate(range_a2):
+            tqdm_bar.update(1)
             task_vector = tv1 * a1 + tv2 * a2
             task = task_vector.task
             # task_vector.create_params_histogram()
@@ -52,7 +60,7 @@ def main(tv1_path, tv2_path):
                 # x = subject["images"][tio.DATA]
                 y = subject["labels"][tio.DATA]
                 metrics = Metrics(task=task_vector.task).compute(
-                    out, y, average="none", keep_nan=True
+                    out, y, average="none", keep_nan=True  # type: ignore
                 )
                 dices.append(metrics["dice"])
             stacked_dices = torch.stack(dices)
@@ -69,6 +77,7 @@ def main(tv1_path, tv2_path):
             grid_search_dices[idx],
             tv1_task_name=tv1_task_name,
             tv2_task_name=tv2_task_name,
+            merge_class=merge_class,
         )
     plot(
         f"{tv1_task_name}+{tv2_task_name}",
@@ -77,6 +86,7 @@ def main(tv1_path, tv2_path):
         torch.nanmean(grid_search_dices, dim=0),
         tv1_task_name=tv1_task_name,
         tv2_task_name=tv2_task_name,
+        merge_class=merge_class,
     )
 
 
@@ -87,6 +97,7 @@ def plot(
     grid_search_dices,
     tv1_task_name="Task1",
     tv2_task_name="Task2",
+    merge_class="TaskVector",
 ):
     grid_search_dices = grid_search_dices.numpy()
     # Flip the matrix vertically
@@ -168,6 +179,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--tv1_checkpoint", type=str, required=True)
     parser.add_argument("--tv2_checkpoint", type=str, required=True)
+    parser.add_argument(
+        "--merge_class", type=str, required=False, default="TaskVectorTies"
+    )
     args = parser.parse_args()
 
     if os.uname().nodename == "ailb-login-02":
@@ -200,7 +214,7 @@ if __name__ == "__main__":
 
     assert tv1_pretrain_kind == tv2_pretrain_kind, "Pretrain kind must be the same"
 
-    configs.DataConfig.OUTPUT_DIR = f"{configs.DataConfig.OUTPUT_DIR}merge/{tv1_task_name}+{tv2_task_name}_{tv2_pretrain_kind}/"
+    configs.DataConfig.OUTPUT_DIR = f"{configs.DataConfig.OUTPUT_DIR}merge/{tv1_task_name}+{tv2_task_name}_{tv2_pretrain_kind}_{args.merge_class}/"
     Path(configs.DataConfig.OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
     print(
         f"Task 1:\n\tName: {tv1_task_name}\n\tKind: {tv1_pretrain_kind}\n\tCheckpoint: {tv1_checkpoint_path}"
@@ -208,4 +222,4 @@ if __name__ == "__main__":
     print(
         f"Task 2:\n\tName: {tv2_task_name}\n\tKind: {tv2_pretrain_kind}\n\tCheckpoint: {tv2_checkpoint_path}"
     )
-    main(tv1_checkpoint_path, tv2_checkpoint_path)
+    main(tv1_checkpoint_path, tv2_checkpoint_path, args.merge_class)

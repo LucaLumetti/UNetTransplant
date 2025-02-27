@@ -21,6 +21,7 @@ def init_weight_he(model: nn.Module, neg_slope=1e-2):
             if module.bias is not None:
                 module.bias = nn.init.constant_(module.bias, 0)
 
+
 class ModelFactory:
     @staticmethod
     def create_backbone(model_config: configs._BackboneConfig) -> torch.nn.Module:
@@ -33,6 +34,7 @@ class ModelFactory:
             model = ResidualUNet3D(
                 in_channels=model_config.IN_CHANNELS,
                 dropout_prob=model_config.DROPOUT_PROB,
+                f_maps=model_config.F_MAPS,
             )
         except TypeError as e:
             raise TypeError(f"Could not instantiate model: {e}")
@@ -61,45 +63,45 @@ class ModelFactory:
         model = model.cuda()
         return model
 
-    @staticmethod
-    def create(model_config, tasks: Optional[List[Task]] = None) -> torch.nn.Module:
-        name = model_config.NAME
-        if name in models.__dict__:
-            model_class = getattr(models, name)
-        else:
-            raise Exception(f"Model {name} not found")
+    # @staticmethod
+    # def create(model_config, tasks: Optional[List[Task]] = None) -> torch.nn.Module:
+    #     name = model_config.NAME
+    #     if name in models.__dict__:
+    #         model_class = getattr(models, name)
+    #     else:
+    #         raise Exception(f"Model {name} not found")
 
-        try:
-            if tasks is not None:
-                model = model_class(model_config.IN_CHANNELS, tasks)
-            else:
-                model = model_class(
-                    model_config.IN_CHANNELS,
-                )
-        except TypeError as e:
-            raise TypeError(f"Could not instantiate {model_class}: {e}")
+    #     try:
+    #         if tasks is not None:
+    #             model = model_class(model_config.IN_CHANNELS, tasks)
+    #         else:
+    #             model = model_class(
+    #                 model_config.IN_CHANNELS,
+    #             )
+    #     except TypeError as e:
+    #         raise TypeError(f"Could not instantiate {model_class}: {e}")
 
-        cuda_capability = torch.cuda.get_device_capability(0)
-        # if cuda_capability[0] >= 7 and model_config.COMPILE:
-        #     model = torch.compile(model=model)
+    #     cuda_capability = torch.cuda.get_device_capability(0)
+    #     # if cuda_capability[0] >= 7 and model_config.COMPILE:
+    #     #     model = torch.compile(model=model)
 
-        init_weight_he(model)
-        model = model.cuda()
+    #     init_weight_he(model)
+    #     model = model.cuda()
 
-        return model
+    #     return model
 
-    @staticmethod
-    def create_from_checkpoint(
-        checkpoint_path: str,
-    ) -> Tuple[torch.nn.Module, torch.nn.Module]:
-        backbone = ModelFactory.create(configs.BackboneConfig)
-        checkpoint = torch.load(checkpoint_path)
+    # @staticmethod
+    # def create_from_checkpoint(
+    #     checkpoint_path: str,
+    # ) -> Tuple[torch.nn.Module, torch.nn.Module]:
+    #     backbone = ModelFactory.create(configs.BackboneConfig)
+    #     checkpoint = torch.load(checkpoint_path)
 
-        backbone.load_state_dict(checkpoint["backbone_state_dict"])
-        head = nn.Conv3d(32, 4, kernel_size=1)
-        head_state_dict = checkpoint["heads_state_dict"]
-        head_state_dict = {
-            k.replace("task_heads.7.", ""): v for k, v in head_state_dict.items()
-        }
-        head.load_state_dict(head_state_dict)
-        return backbone, head
+    #     backbone.load_state_dict(checkpoint["backbone_state_dict"])
+    #     head = nn.Conv3d(32, 4, kernel_size=1)
+    #     head_state_dict = checkpoint["heads_state_dict"]
+    #     head_state_dict = {
+    #         k.replace("task_heads.7.", ""): v for k, v in head_state_dict.items()
+    #     }
+    #     head.load_state_dict(head_state_dict)
+    #     return backbone, head

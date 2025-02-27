@@ -31,6 +31,7 @@ class _BackboneConfig:
     N_EPOCHS_FREEZE: int = 5
     DROPOUT_PROB: float = 0.1
     TASK_VECTOR_INIT: Optional[Path] = None
+    F_MAPS: int = 64
 
 
 @dataclass

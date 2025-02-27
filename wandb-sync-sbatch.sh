@@ -9,5 +9,5 @@
 #SBATCH --account=IscrB_FeeCO
 
 python3 wandb-sync.py -w 24
-#sbatch --begin=now+180minutes wandb-sync-sbatch.sh
+#sbatch --begin=now+30minutes wandb-sync-sbatch.sh
 

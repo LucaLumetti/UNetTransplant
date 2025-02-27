@@ -1,9 +1,10 @@
 from collections import OrderedDict
 from copy import deepcopy
-from typing import Optional, cast
-from task.Task import Task
+from typing import List, Optional, cast
 
 import torch
+
+from task.Task import Task
 from taskvectors.TaskVector import TaskVector
 
 
@@ -19,39 +20,42 @@ def state_dict_to_vector(state_dict):
     return torch.nn.utils.parameters_to_vector(sorted_dict.values())
 
 
-def ties_merge(params1, params2):
+def ties_merge(params: List[torch.nn.ParameterList]):
     merged_params = []
-    
-    for p1, p2 in zip(params1, params2):
-        p1_flat = p1.view(-1)
-        p2_flat = p2.view(-1)
-        
-        if p1_flat.numel() > p2_flat.numel():
-            p2_flat = torch.cat([p2_flat, torch.zeros(p1_flat.numel() - p2_flat.numel(), device=p1.device)])
-        elif p2_flat.numel() > p1_flat.numel():
-            p1_flat = torch.cat([p1_flat, torch.zeros(p2_flat.numel() - p1_flat.numel(), device=p2.device)])
-        
-        combined = torch.stack([p1_flat, p2_flat], dim=0)
-        
+
+    for ps in zip(*params):
+        ps_flat = [p.view(-1) for p in ps]
+
+        max_numel = max([p.numel() for p in ps_flat])
+        for i, p in enumerate(ps_flat):
+            if p.numel() < max_numel:
+                ps_flat[i] = torch.cat(
+                    [p, torch.zeros(max_numel - p.numel(), device=p.device)]
+                )
+
+        combined = torch.stack(ps_flat, dim=0)
+
         # filtering out the smallest values
         k = int(0.2 * combined.size(1))
         threshold = combined.abs().kthvalue(k, dim=1, keepdim=True).values
         mask = combined.abs() < threshold
         combined[mask] = 0
-        
+
         # sign
         sign_to_mult = torch.sign(combined.sum(dim=0))
         majority_sign = torch.sign(combined.sum())
         sign_to_mult[sign_to_mult == 0] = majority_sign
-        
-        # electing 
-        valid_rows = torch.where(sign_to_mult.unsqueeze(0) > 0, combined > 0, combined < 0)
+
+        # electing
+        valid_rows = torch.where(
+            sign_to_mult.unsqueeze(0) > 0, combined > 0, combined < 0
+        )
         selected_entries = combined * valid_rows
         non_zero_counts = (selected_entries != 0).sum(dim=0).float()
         merged_param = selected_entries.sum(dim=0) / torch.clamp(non_zero_counts, min=1)
-        
-        merged_params.append(merged_param.view_as(p1))
-    
+
+        merged_params.append(merged_param.view_as(ps[0]))
+
     return torch.nn.ParameterList([torch.nn.Parameter(p) for p in merged_params])
 
 
@@ -66,6 +70,15 @@ class TaskVectorTies(TaskVector):
 
     def __iadd__(self, other: "TaskVector"):
         self.task = self.task + other.task
-        self.params = ties_merge(self.params, other.params)
+        self.params = ties_merge([self.params, other.params])
         self._head_params += other._head_params
         return self
+
+    def __add_many__(self, others):
+        tv = deepcopy(self)
+        for other in others:
+            tv.task = tv.task + other.task
+            tv._head_params += other._head_params
+        tv.params = ties_merge([tv.params] + [other.params for other in others])
+
+        return tv

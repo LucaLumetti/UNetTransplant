@@ -2,7 +2,7 @@ import json
 import math
 from collections import defaultdict
 from pathlib import Path
-from typing import List, Literal, Optional, Union, cast
+from typing import List, Literal, Optional, Tuple, Union, cast
 
 import numpy as np
 import torch
@@ -14,6 +14,41 @@ from custom_types import Split
 from datasets.LoadableDataset import LoadableDataset
 from preprocessing.dataset_class_mapping import DATASET_IDX, DATASET_ORIGINAL_LABELS
 from task.Task import Task
+
+
+class AssertShapeEqualsOrGreater(tio.Transform):
+    def __init__(
+        self,
+        target_shape: Tuple[int, int, int],
+        padding_mode: str = "constant",
+        padding_value: float = 0,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.target_shape = np.array(target_shape)
+        self.padding_mode = padding_mode
+        self.padding_value = padding_value
+
+    def apply_transform(self, subject: tio.Subject) -> tio.Subject:
+        for image in subject.get_images(intensity_only=False):
+            current_shape = np.array(image.spatial_shape)
+            padding_needed = np.maximum(self.target_shape - current_shape, 0)
+
+            pad_params: Tuple[int, int, int, int, int, int] = (
+                padding_needed[0] // 2,
+                padding_needed[0] - padding_needed[0] // 2,
+                padding_needed[1] // 2,
+                padding_needed[1] - padding_needed[1] // 2,
+                padding_needed[2] // 2,
+                padding_needed[2] - padding_needed[2] // 2,
+            )
+
+            image.set_data(
+                tio.transforms.Pad(pad_params, padding_mode=self.padding_value)(
+                    image
+                ).data
+            )
+        return subject
 
 
 class PatchDataset:
@@ -30,6 +65,7 @@ class PatchDataset:
 
         preprocessing = [
             tio.RemapLabels(labels_to_remap),
+            AssertShapeEqualsOrGreater((96, 96, 96)),
             tio.RescaleIntensity((0, 1), percentiles=(0.5, 99.5)),
         ]
         augmentations = []
@@ -137,9 +173,10 @@ class PatchDataset:
         for i in range(1, self.num_output_channels):
             label_probs[i] = 1
         label_probs[0] = 0.1
-        label_probs[1] = 0.5
-        label_probs[2] = 0.5
-        # label_probs[0] = sum(label_probs.values()) / 9  # background 10%
+
+        if self.dataset_name in ["ToothFairy", "ZhimingCui"]:
+            label_probs[1] = 0.5
+            label_probs[2] = 0.5
 
         patch_sampler = tio.data.LabelSampler(
             patch_size=(96, 96, 96),

@@ -14,16 +14,6 @@ class ComposedDataset(LoadableDataset):
         self,
         split: Split,
     ):
-        # dataset_names = ["AMOS", "SegThor", "BTCV_Abdomen", "BTCV_Cervix", "ZhimingCui", "AbdomenCT-1K", "Skull", "TotalSegmentator"]
-        # TODO: get them dynamically by reading the main folder
-        # dataset_names = [
-        #     "AbdomenCT-1K",
-        #     "BTCV_Abdomen",
-        #     "SegThor",
-        #     "ZhimingCui",
-        #     "Skull",
-        #     "BTCV_Cervix",
-        # ]
         if isinstance(split, str):
             split = [split]
         self.split = split
@@ -31,7 +21,6 @@ class ComposedDataset(LoadableDataset):
         self.combined_dataset = []
         self.weights = torch.tensor([1.0 for _ in dataset_names])
 
-        # self.augmenter = Augmenter() # TODO
         for dataset_name in dataset_names:
             dataset = PreprocessedDataset(split=split, dataset_name=dataset_name)
             self.combined_dataset.append(dataset)

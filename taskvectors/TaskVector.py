@@ -101,6 +101,14 @@ class TaskVector:
     def __rmul__(self, other: float):
         return self.__mul__(other)
 
+    def __add_many__(self, others: List["TaskVector"]):
+        num_tv = len(others)
+        alpha = 1 / (num_tv)
+        tv = alpha * deepcopy(self)
+        for other in others:
+            tv += alpha * other
+        return tv
+
     def get_backbone_and_heads(self, tasks):
         backbone = ModelFactory.create_backbone(configs.BackboneConfig)
         backbone = TaskVectorModel(backbone)
@@ -125,7 +133,7 @@ class TaskVector:
                 heads_state_dict[name].append(params)
 
         for name, params in heads_state_dict.items():
-            heads_state_dict[name] = torch.concat(params, dim=0)
+            heads_state_dict[name] = torch.concat(params, dim=0)  # type: ignore
 
         num_different_heads = len(heads_state_dict.keys()) / 2
         assert num_different_heads == 1, "Still TODO: multiple heads"
