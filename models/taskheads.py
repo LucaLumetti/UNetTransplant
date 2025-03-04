@@ -64,7 +64,7 @@ class TaskHeads(nn.Module):
             if i not in grouped_x.keys():
                 continue
             task_x = grouped_x[i]
-            task_y = grouped_y[i] if y is not None else None
+            task_y = grouped_y[i] if y is not None else None  # type: ignore
             task_head = self.task_heads[str(i)]
 
             prediction = task_head(task_x)

@@ -1,4 +1,4 @@
-from collections import OrderedDict, defaultdict
+from collections import defaultdict
 from copy import deepcopy
 from typing import List, Optional, cast
 
@@ -7,7 +7,6 @@ import torch
 
 import configs
 from models.modelFactory import ModelFactory
-from models.taskheads import TaskHeads
 from models.TaskVectorModel import TaskVectorModel
 from task.Task import Task
 
@@ -18,7 +17,6 @@ class TaskVector:
         task: Optional[Task] = None,
         checkpoints: Optional[str] = None,
         params: Optional[torch.nn.ParameterList] = None,
-        # use_norm: bool = False,
     ):
         assert (
             checkpoints is not None or params is not None

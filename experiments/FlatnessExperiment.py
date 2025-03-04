@@ -1,13 +1,12 @@
 from pathlib import Path
+
+import torch
+import torchio as tio
+from tqdm import tqdm
+
 import configs
 from experiments.BaseExperiment import BaseExperiment
-from tqdm import tqdm
-import torchio as tio
-import torch
-import wandb
 
-
-from metrics.Metrics import Metrics
 
 def get_module_grads(module: torch.nn.Module, allow_none_grads=False):
     grads = []
@@ -20,13 +19,15 @@ def get_module_grads(module: torch.nn.Module, allow_none_grads=False):
                 grads.append(param.grad.flatten())
     return torch.concat(grads)
 
+
 def zero_grads(module: torch.nn.Module):
     for name, param in module.named_parameters():
         if param.requires_grad:
             param.grad = None
 
+
 def perturb_model(model, sigma):
-    for nn, m in model.named_parameters():
+    for name, m in model.named_parameters():
         if m.dim() > 1:
             perturbation = []
             for j in range(m.shape[0]):
@@ -35,6 +36,7 @@ def perturb_model(model, sigma):
                 perturbation.append(pert)
             perturbation = torch.stack(perturbation, dim=0)
             m += perturbation
+
 
 class FlatnessExperiment(BaseExperiment):
     def __init__(self, experiment_name: str):
@@ -50,9 +52,9 @@ class FlatnessExperiment(BaseExperiment):
         self,
         checkpoint_path: Path,
         load_backbone: bool = True,
-        load_heads=True,
         load_optimizer: bool = False,
         load_scheduler: bool = False,
+        load_heads: bool = True,
         load_epoch: bool = False,
     ) -> None:
         checkpoint = torch.load(checkpoint_path)
@@ -60,29 +62,19 @@ class FlatnessExperiment(BaseExperiment):
         heads_state_dict = checkpoint["heads_state_dict"]
 
         new_heads_state_dict = {}
-        for key, value in heads_state_dict.items():
-            new_key = key.replace("4", "8")
-            new_heads_state_dict[new_key] = value
-        
+
+        new_heads_state_dict = heads_state_dict
         if load_backbone:
             self.legacy_model_load(backbone_state_dict)
         if load_heads:
             self.heads.load_state_dict(new_heads_state_dict)
 
     def evaluate(self):
-        #fisher = self.compute_fisher()
-        loss_original, loss_min, loss_max = self.compute_loss()
-        sigmas = [0.1, 0.2, 0.5, 1]
-        print(f"ORIGINAL LOSS: {loss_original}, MIN: {loss_min}, MAX: {loss_max}")
-        wandb.log(({"loss_original": loss_original, "loss_min": loss_min, "loss_max": loss_max}))
-        for sigma in sigmas:
-            ploss, ploss_min, ploss_max = self.compute_perturbed_loss(sigma=sigma)
-            print(f"PERTUBATION LOSS SIGMA {sigma}: {ploss}, MIN: {ploss_min}, MAX: {ploss_max}")
-            wandb.log({"gap pert vs original": ploss - loss_original, "sigma": sigma, "pert_loss_min": ploss_min, "pert_loss_max": ploss_max})
-        #print(f"FISHER:{fisher} -- PERTUBATION LOSS: {ploss} -- ORIGINAL LOSS: {loss_original}")
-    
+        flatness = self.compute_fisher()
+        return flatness
+
     @torch.no_grad()
-    def compute_perturbed_loss(self, sigma = 0.1):
+    def compute_perturbed_loss(self, sigma=0.1):
         self.backbone.eval()
         self.heads.eval()
         data = self.val_dataset.dataset  # TODO: dataloader
@@ -93,13 +85,19 @@ class FlatnessExperiment(BaseExperiment):
 
         perturb_model(self.backbone, sigma)
         for i, subject in enumerate(tqdm(data, desc="Val")):
-            grid_sampler = tio.GridSampler(subject, patch_size=(96, 96, 96), patch_overlap=0)
+            grid_sampler = tio.GridSampler(
+                subject, patch_size=(96, 96, 96), patch_overlap=0
+            )
             patch_losses = []
             for patch in grid_sampler:
                 zero_grads(self.backbone)
                 total_patch_forwarded += 1
                 image, label, dataset_indices = self.get_image_label_idx(patch)
-                image, label, dataset_indices = image.unsqueeze(0), label.unsqueeze(0), dataset_indices.unsqueeze(0)
+                image, label, dataset_indices = (
+                    image.unsqueeze(0),
+                    label.unsqueeze(0),
+                    dataset_indices.unsqueeze(0),
+                )
                 backbone_pred = self.backbone(image)
                 heads_pred, loss = self.heads(backbone_pred, dataset_indices, label)
                 patch_losses.append(loss)
@@ -110,7 +108,6 @@ class FlatnessExperiment(BaseExperiment):
         losses_min = torch.mean(torch.stack(losses_min).mean())
         losses_max = torch.mean(torch.stack(losses_max).mean())
         return losses, losses_min, losses_max
-
 
     @torch.no_grad()
     def compute_loss(self):
@@ -123,13 +120,19 @@ class FlatnessExperiment(BaseExperiment):
         losses_min, losses_max = [], []
 
         for i, subject in enumerate(tqdm(data, desc="Val")):
-            grid_sampler = tio.GridSampler(subject, patch_size=(96, 96, 96), patch_overlap=0)
+            grid_sampler = tio.GridSampler(
+                subject, patch_size=(96, 96, 96), patch_overlap=0
+            )
             patch_losses = []
             for patch in grid_sampler:
                 zero_grads(self.backbone)
                 total_patch_forwarded += 1
                 image, label, dataset_indices = self.get_image_label_idx(patch)
-                image, label, dataset_indices = image.unsqueeze(0), label.unsqueeze(0), dataset_indices.unsqueeze(0)
+                image, label, dataset_indices = (
+                    image.unsqueeze(0),
+                    label.unsqueeze(0),
+                    dataset_indices.unsqueeze(0),
+                )
                 backbone_pred = self.backbone(image)
                 heads_pred, loss = self.heads(backbone_pred, dataset_indices, label)
                 patch_losses.append(loss)
@@ -141,7 +144,6 @@ class FlatnessExperiment(BaseExperiment):
         losses_max = torch.mean(torch.stack(losses_max).mean())
         return losses, losses_min, losses_max
 
-
     def compute_fisher(self):
         self.backbone.eval()
         self.heads.eval()
@@ -151,21 +153,34 @@ class FlatnessExperiment(BaseExperiment):
 
         total_patch_forwarded = 0
         for i, subject in enumerate(tqdm(data, desc="Val")):
-            grid_sampler = tio.GridSampler(subject, patch_size=(96, 96, 96), patch_overlap=0)
+            grid_sampler = tio.GridSampler(
+                subject, patch_size=(96, 96, 96), patch_overlap=0
+            )
             for patch in grid_sampler:
                 zero_grads(self.backbone)
                 total_patch_forwarded += 1
                 image, label, dataset_indices = self.get_image_label_idx(patch)
-                image, label, dataset_indices = image.unsqueeze(0), label.unsqueeze(0), dataset_indices.unsqueeze(0)
+                image, label, dataset_indices = (
+                    image.unsqueeze(0),
+                    label.unsqueeze(0),
+                    dataset_indices.unsqueeze(0),
+                )
                 backbone_pred = self.backbone(image)
-                heads_pred, loss, loss_min, loss_max = self.heads(backbone_pred, dataset_indices, label)
+                heads_pred, loss, loss_min, loss_max = self.heads(
+                    backbone_pred, dataset_indices, label
+                )
                 loss.backward()
-                exp_cond_prob = 1 # Chissa se è giusta
+                exp_cond_prob = 1  # Chissa se è giusta
                 fish += exp_cond_prob * get_module_grads(self.backbone) ** 2
 
         fish /= total_patch_forwarded
-        print(fish.sum())
+        print(f"FIM Trace: {fish.sum()}")
+        fish_sorted = fish.flatten().sort()[0].cpu().numpy()[::-1]
+        print(f"FIM top 10: {fish_sorted[:10]}")
+        print(f"FIM last 10: {fish_sorted[-10:]}")
         return fish.sum()
 
-    def train(self,):
+    def train(
+        self,
+    ):
         pass

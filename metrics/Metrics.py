@@ -1,7 +1,6 @@
 import torch
 from torchmetrics.functional import dice
 
-from preprocessing.dataset_class_mapping import DATASET_ORIGINAL_LABELS
 from task.Task import Task
 
 

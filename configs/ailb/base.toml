@@ -1,7 +1,7 @@
 [DataConfig]
 NAME = "ComposedDataset"
 DATASET_NAMES = ["ToothFairy2"]
-DATASET_CLASSES = []
+DATASET_CLASSES = ['all']
 BATCH_SIZE = 4
 NUM_WORKERS = 8
 DATA_PREPROCESSED_PATH = ""
@@ -31,3 +31,4 @@ NAME = "DiceBCELoss"
 [TrainConfig]
 EPOCHS = 21
 SAVE_EVERY = 10
+RESUME = "/work/grana_maxillo/UNetMerging/checkpoints/PretrainExperiment_ciemotpb_pretrain/checkpoint_50_2025-02-09 18:00:05.589000.pth"

@@ -3,6 +3,7 @@ import os
 import sys
 from pathlib import Path
 
+import torch
 import wandb
 
 import configs
@@ -13,15 +14,11 @@ def main():
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument(
         "--experiment",
-        help="Name of the experiment, supported: 'PretrainExperiment'.",
-        # default="PretrainExperiment",
-        # default="TaskVectorExperiment",
+        help="Name of the experiment, supported: 'PretrainExperiment', 'TaskVectorTrainExperiment'.",
     )
     arg_parser.add_argument(
         "--config",
         help="Path to the configuration file.",
-        # default="configs/taskvector_tf_mandible.toml",
-        # default="/work/grana_maxillo/UNetMerging/configs/pretrain.toml",
     )
     arg_parser.add_argument(
         "--expname",
@@ -35,6 +32,10 @@ def main():
     )  # values can be overrided by passing them as DataConfig.DATASET_CLASSES = ['1,2'], DataConfig.BATCH_SIZE = 1
     args = arg_parser.parse_args()
 
+    if os.uname().nodename == "ailb-login-02":
+        torch.backends.cudnn.enabled = False
+        os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
     config_path = find_config_path(args.config)
     config_basename = config_path.stem
     configs.initialize_config(config_path)
@@ -45,7 +46,7 @@ def main():
 
     experiment_name = f"{args.experiment}_{wandb.util.generate_id()}_{postfix}"  # type: ignore
 
-    wandb_mode = "online" if "lrdn" not in os.uname().nodename else "offline"
+    wandb_mode = "disabled"
 
     if "debugpy" in sys.modules:
         configs.DataConfig.BATCH_SIZE = 1
@@ -59,7 +60,7 @@ def main():
         project="UNetMerging",
         name=experiment_name,
         entity="maxillo",
-        #mode=wandb_mode,
+        mode=wandb_mode,
         config=configs.generate_config_json(),
     )
 
@@ -67,7 +68,7 @@ def main():
         experiment=args.experiment, name=experiment_name
     )
 
-    experiment.train()
+    # experiment.train()
     experiment.evaluate()
 
 

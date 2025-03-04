@@ -90,9 +90,7 @@ class AlphaTrainExperiment(BaseExperiment):
                 desc=f"Epoch {epoch}",
                 total=len(self.train_loader),
             ):
-                image, label, dataset_indices = self.get_image_label_idx(
-                    sample, device="cuda"
-                )
+                image, label, dataset_indices = self.get_image_label_idx(sample)
 
                 if configs.BackboneConfig.N_EPOCHS_FREEZE > epoch:
                     with torch.no_grad():

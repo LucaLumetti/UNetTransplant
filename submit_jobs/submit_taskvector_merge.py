@@ -62,8 +62,8 @@ task_vectors_classes = [
 ]
 task_vectors_classes = [x[0] for x in task_vectors_classes]
 
-checkpoints_path = (
-    Path("/leonardo_scratch/large/userexternal/llumetti/output_UNetMergingcheckpoints")
+checkpoints_path = Path(
+    "/leonardo_scratch/large/userexternal/llumetti/output_UNetMergingcheckpoints"
 )
 checkpoints_path = [
     x
@@ -78,7 +78,7 @@ for checkpoint_path in checkpoints_path:
     if "+" in tv_task_name:
         continue
     if "Naive" not in tv_pretrain_kind:
-       continue
+        continue
     if tv_pretrain_kind not in grouped_checkpoints:
         grouped_checkpoints[tv_pretrain_kind] = {}
     grouped_checkpoints[tv_pretrain_kind][tv_task_name] = checkpoint_path

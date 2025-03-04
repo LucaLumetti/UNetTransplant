@@ -50,6 +50,7 @@ class PretrainExperiment(BaseExperiment):
         if configs.TrainConfig.RESUME:
             self.load(
                 Path(configs.TrainConfig.RESUME),
+                load_backbone=True,
                 load_optimizer=True,
                 load_scheduler=True,
                 load_heads=True,
@@ -138,6 +139,7 @@ class PretrainExperiment(BaseExperiment):
     def evaluate(
         self,
     ):
+        super().evaluate()
         fisher_flatness = self.compute_fisher()
         dict_to_log = {
             "Val/Fisher_Flatness": fisher_flatness,

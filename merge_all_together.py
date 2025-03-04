@@ -35,9 +35,7 @@ def main(tv_paths, merge_class):
     initial_task_vector = task_vectors[0]
     combined_task_vector = initial_task_vector.__add_many__(task_vectors[1:])
 
-    incremental_dices = []
-
-    dataset = PatchDataset(split="train", task=combined_task_vector.task)
+    dataset = PatchDataset(split="val", task=combined_task_vector.task)
     dataset = [subject for subject in dataset.dataset]
     task = combined_task_vector.task
     backbone, heads = combined_task_vector.get_backbone_and_heads(tasks=[task])
@@ -47,21 +45,15 @@ def main(tv_paths, merge_class):
 
     dices = []
     for subject in tqdm(dataset):
-        if 5 not in subject["labels"][tio.DATA].unique():
-            continue
         with torch.no_grad():
             out = BaseExperiment.functional_predict(
                 backbone=backbone, heads=heads, subject=subject
             )
         x = subject["images"][tio.DATA]
-        y = subject["labels"][tio.DATA]
+        y = subject["labels"][tio.DATA].to(torch.int64)
         metrics = Metrics(task=combined_task_vector.task).compute(
             out, y, average="none", keep_nan=True  # type: ignore
         )
-
-        np.save("debug/x.npy", x.numpy())
-        np.save("debug/y.npy", y.numpy())
-        np.save("debug/out.npy", out.numpy().astype(np.uint8))
 
         print(metrics["dice"])
         dices.append(metrics["dice"])
@@ -93,22 +85,23 @@ def override_config(configs, overrides: list):
 
 
 def get_task_vectors_paths():
-    task_vectors_classes = [
-        ("Mandible", ["1"]),
-        ("Pharynx", ["7"]),
-        ("Canals", ["3-4"]),
-        ("Teeth", ["11-18,21-28,31-38,41-48"]),
-        ("Implants", ["8,9,10"]),
-        # ("Skull", ["2"]),
-    ]
-    # task_vectors_classes = [
-    #     ("Spleen", ["1"]),
-    #     ("Kidney", ["2,3"]),
-    #     # ("Esophagus", ["5"]),
-    #     ("Liver", ["6"]),
-    #     ("Stomach", ["7"]),
-    #     # ("Pancreas", ["11"]),
-    # ]
+    if configs.DataConfig.DATASET_NAMES[0] == "ToothFairy2":
+        task_vectors_classes = [
+            ("Mandible", ["1"]),
+            ("Pharynx", ["7"]),
+            ("Canals", ["3-4"]),
+            ("Teeth", ["11-18,21-28,31-38,41-48"]),
+        ]
+    elif configs.DataConfig.DATASET_NAMES[0] == "BTCV_Abdomen":
+        task_vectors_classes = [
+            ("Spleen", ["1"]),
+            ("Kidney", ["2,3"]),
+            ("Liver", ["6"]),
+            ("Stomach", ["7"]),
+        ]
+    else:
+        raise ValueError(f"Invalid dataset: {configs.DataConfig.DATASET_NAMES[0]}")
+
     task_vectors_classes = [x[0] for x in task_vectors_classes]
 
     checkpoints_path = (
@@ -159,7 +152,12 @@ if __name__ == "__main__":
 
     task_vector_paths = get_task_vectors_paths()
     for k, v in task_vector_paths.items():
-        v = [x / [x for x in os.listdir(x) if "0030" in x][0] for x in v]
+        v = [x / [x for x in os.listdir(x) if "0010" in x][0] for x in v]
         task_vector_paths[k] = v
 
-    main(task_vector_paths["Stable1_yg0hh"], args.merge_class)
+    for key in task_vector_paths.keys():
+        print(f"Running for {key}:")
+        print("TaskVector")
+        main(task_vector_paths[key], "TaskVector")
+        print("TaskVectorTies")
+        main(task_vector_paths[key], "TaskVectorTies")

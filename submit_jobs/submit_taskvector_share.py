@@ -54,7 +54,9 @@ def run_job(config_path, checkpoint_path, class_to_predict, name):
 
 base_config = "/leonardo/home/userexternal/llumetti/projects/UNetMerging/configs/leonardo/share.toml"
 
-base_path_checkpoints = Path("/leonardo_scratch/large/userexternal/llumetti/output_UNetMergingcheckpoints")
+base_path_checkpoints = Path(
+    "/leonardo_scratch/large/userexternal/llumetti/output_UNetMergingcheckpoints"
+)
 
 task_vectors_checkpoints = [
     Path("TaskVectorTrainExperiment_nicd7j0f__Mandible_Stable1_yg0hh"),
@@ -78,7 +80,7 @@ task_vectors_checkpoints = [base_path_checkpoints / c for c in task_vectors_chec
 
 
 task_vectors_checkpoints = [
-    list(checkpoint_path.glob("epoch0030*.pth"))[0]
+    list(checkpoint_path.glob("epoch0010*.pth"))[0]
     for checkpoint_path in task_vectors_checkpoints
 ]
 

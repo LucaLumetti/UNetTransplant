@@ -1,6 +1,5 @@
-from typing import Any, Callable, Optional, Tuple
+from typing import Callable, Optional
 
-import torch
 from torch import nn
 
 

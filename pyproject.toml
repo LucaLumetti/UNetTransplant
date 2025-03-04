@@ -1,7 +1,6 @@
 [tool.isort]
 profile = "black"
 
-# pylance exclude slurm_out and venv
 [tool.pyright]
 ignore = [
     "venv",

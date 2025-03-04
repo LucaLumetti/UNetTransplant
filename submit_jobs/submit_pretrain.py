@@ -48,8 +48,6 @@ def run_job(config_path):
 configs_to_run = [
     "/leonardo/home/userexternal/llumetti/projects/UNetMerging/configs/leonardo/pretrain_stable_small.toml",
     "/leonardo/home/userexternal/llumetti/projects/UNetMerging/configs/leonardo/pretrain_stable_large.toml",
-
-
     # "/work/grana_maxillo/UNetMerging/configs/ailb/pretrain_stable_small.toml",
     # "/work/grana_maxillo/UNetMerging/configs/pretrain_stable.toml",
 ]

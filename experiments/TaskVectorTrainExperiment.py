@@ -44,11 +44,10 @@ class TaskVectorTrainExperiment(BaseExperiment):
 
     def save(self, epoch):
         now = datetime.now()
-        if not os.path.exists(
-            f"{configs.DataConfig.OUTPUT_DIR}checkpoints/{wandb.run.name}"
-        ):
-            os.makedirs(f"{configs.DataConfig.OUTPUT_DIR}checkpoints/{wandb.run.name}")
-        checkpoint_filename = f"{configs.DataConfig.OUTPUT_DIR}checkpoints/{wandb.run.name}/epoch{epoch:04}_{now}_task_vector.pth"
+        run_name = wandb.run.name  # type: ignore
+        if not os.path.exists(f"{configs.DataConfig.OUTPUT_DIR}checkpoints/{run_name}"):
+            os.makedirs(f"{configs.DataConfig.OUTPUT_DIR}checkpoints/{run_name}")
+        checkpoint_filename = f"{configs.DataConfig.OUTPUT_DIR}checkpoints/{run_name}/epoch{epoch:04}_{now}_task_vector.pth"
         torch.save(
             {
                 "pretrain_state_dict": self.backbone.params0.state_dict(),
@@ -71,9 +70,7 @@ class TaskVectorTrainExperiment(BaseExperiment):
                 desc=f"Epoch {epoch}",
                 total=len(self.train_loader),
             ):
-                image, label, dataset_indices = self.get_image_label_idx(
-                    sample, device="cuda"
-                )
+                image, label, dataset_indices = self.get_image_label_idx(sample)
 
                 if configs.BackboneConfig.N_EPOCHS_FREEZE > epoch:
                     with torch.no_grad():
@@ -97,8 +94,6 @@ class TaskVectorTrainExperiment(BaseExperiment):
                 loss=losses,
                 epoch=epoch,
             )
-
-            # self.scheduler.step()
 
             if epoch % configs.TrainConfig.SAVE_EVERY == 0:
                 self.evaluate()

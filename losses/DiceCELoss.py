@@ -37,11 +37,6 @@ class DiceCELoss(nn.Module):
         target_onehot = target_onehot[:, 1:]
 
         dice_loss = self.dice(net_output, target_onehot, mask=mask)
-        # target_onehot = target_onehot.float()
-
-        # if mask is not None:
-        #     net_output = net_output[:, mask, :, :, :]
-        #     target_onehot = target_onehot[:, mask, :, :, :]
         ce_loss = self.ce(net_output, target.squeeze(1) - 1)
 
         result = dice_loss + ce_loss

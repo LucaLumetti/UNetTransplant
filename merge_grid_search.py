@@ -1,5 +1,4 @@
 import os
-from itertools import product
 from pathlib import Path
 
 import numpy as np
@@ -9,12 +8,9 @@ from matplotlib import pyplot as plt
 from tqdm import tqdm
 
 import configs
-from datasets import DatasetFactory
 from datasets.PatchDataset import PatchDataset
 from experiments.BaseExperiment import BaseExperiment
 from metrics.Metrics import Metrics
-from models.modelFactory import ModelFactory
-from models.taskheads import Task
 from taskvectors.TaskVector import TaskVector
 from taskvectors.TaskVectorTies import TaskVectorTies
 
@@ -31,8 +27,6 @@ def main(tv1_path, tv2_path, merge_class):
     dataset = PatchDataset(split="val", task=(tv1 + tv2).task)
     dataset = [subject for subject in dataset.dataset]
 
-    # subject = dataset.dataset[0]
-
     range_a1 = np.linspace(0, 2, 21)
     range_a2 = np.linspace(0, 2, 21)
     grid_search_dices = torch.zeros((2, len(range_a1), len(range_a2)))
@@ -44,7 +38,7 @@ def main(tv1_path, tv2_path, merge_class):
             tqdm_bar.update(1)
             task_vector = tv1 * a1 + tv2 * a2
             task = task_vector.task
-            # task_vector.create_params_histogram()
+
             backbone, heads = task_vector.get_backbone_and_heads(tasks=[task])
             backbone.eval()
             heads.eval()
@@ -65,7 +59,6 @@ def main(tv1_path, tv2_path, merge_class):
                 dices.append(metrics["dice"])
             stacked_dices = torch.stack(dices)
             grid_search_dices[:, idx1, idx2] = torch.nanmean(stacked_dices, dim=0)[1:]
-            # print(f"a1: {a1}, a2: {a2}, Dice: {stacked_dices}")
 
     tv1_task_name = tv1.task.task_name or "Task1"
     tv2_task_name = tv2.task.task_name or "Task2"
@@ -77,7 +70,6 @@ def main(tv1_path, tv2_path, merge_class):
             grid_search_dices[idx],
             tv1_task_name=tv1_task_name,
             tv2_task_name=tv2_task_name,
-            merge_class=merge_class,
         )
     plot(
         f"{tv1_task_name}+{tv2_task_name}",
@@ -86,7 +78,6 @@ def main(tv1_path, tv2_path, merge_class):
         torch.nanmean(grid_search_dices, dim=0),
         tv1_task_name=tv1_task_name,
         tv2_task_name=tv2_task_name,
-        merge_class=merge_class,
     )
 
 
@@ -97,7 +88,6 @@ def plot(
     grid_search_dices,
     tv1_task_name="Task1",
     tv2_task_name="Task2",
-    merge_class="TaskVector",
 ):
     grid_search_dices = grid_search_dices.numpy()
     # Flip the matrix vertically
@@ -201,15 +191,13 @@ if __name__ == "__main__":
     tv2_task_name = Path(args.tv2_checkpoint).stem.split("__")[1].split("_")[0]
     tv2_pretrain_kind = Path(args.tv2_checkpoint).stem.split("__")[1].split("_")[1]
 
-    # args.tv?_checkpoint is a folder, inside of it have a checkpoint file named  'epoch0030_2025-02-14 08:55:37.346899_task_vector.pth', the date ofc is random. Load it without relying on the date
-
     tv1_checkpoint_path = (
         Path(args.tv1_checkpoint)
-        / [x for x in os.listdir(args.tv1_checkpoint) if "0030" in x][0]
+        / [x for x in os.listdir(args.tv1_checkpoint) if "0010" in x][0]
     )
     tv2_checkpoint_path = (
         Path(args.tv2_checkpoint)
-        / [x for x in os.listdir(args.tv2_checkpoint) if "0030" in x][0]
+        / [x for x in os.listdir(args.tv2_checkpoint) if "0010" in x][0]
     )
 
     assert tv1_pretrain_kind == tv2_pretrain_kind, "Pretrain kind must be the same"

@@ -1,8 +1,5 @@
 import json
-import math
-from collections import defaultdict
-from pathlib import Path
-from typing import List, Literal, Optional, Tuple, Union, cast
+from typing import List, Optional, Tuple, cast
 
 import numpy as np
 import torch
@@ -11,7 +8,6 @@ from sympy import Idx
 
 import configs
 from custom_types import Split
-from datasets.LoadableDataset import LoadableDataset
 from preprocessing.dataset_class_mapping import DATASET_IDX, DATASET_ORIGINAL_LABELS
 from task.Task import Task
 
@@ -73,8 +69,6 @@ class PatchDataset:
             augmentations = [
                 tio.RandomNoise(p=0.3),
                 tio.RandomGamma(p=0.2),
-                # tio.RandomMotion(p=0.05),
-                # tio.RandomGhosting(p=0.05),
                 tio.RandomAffine(p=0.1),
             ]
 
@@ -157,6 +151,8 @@ class PatchDataset:
             return self.get_train_dataloader(batch_size, num_workers)
         elif self.split == "val":
             return self.get_val_dataloader(batch_size, num_workers)
+        else:
+            raise ValueError(f"Split {self.split} not recognized.")
 
     def get_train_dataloader(
         self,
@@ -173,10 +169,6 @@ class PatchDataset:
         for i in range(1, self.num_output_channels):
             label_probs[i] = 1
         label_probs[0] = 0.1
-
-        if self.dataset_name in ["ToothFairy", "ZhimingCui"]:
-            label_probs[1] = 0.5
-            label_probs[2] = 0.5
 
         patch_sampler = tio.data.LabelSampler(
             patch_size=(96, 96, 96),
@@ -199,6 +191,7 @@ class PatchDataset:
 
         return patches_loader
 
+    # TODO: implement
     def get_val_dataloader(
         self,
         batch_size: Optional[int] = None,

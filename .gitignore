@@ -7,7 +7,8 @@ debug/
 old/
 *.pth
 *.npy
-domande_angel.txt
+slurm_logs/
+slurm_logs_pretrain/
 *.toml
 *.png
 *.jpg

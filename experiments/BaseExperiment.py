@@ -1,8 +1,7 @@
 import os
 from collections import defaultdict
-from datetime import datetime
 from pathlib import Path
-from typing import Any, List, Optional, Union
+from typing import List, Optional, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -17,7 +16,6 @@ from metrics.Metrics import Metrics
 from models.modelFactory import ModelFactory
 from models.utils import get_number_of_learnable_parameters
 from optimizers.OptimizerFactory import OptimizerFactory
-from preprocessing.preprocessor import Preprocessor
 from task.Task import Task
 
 
@@ -57,15 +55,6 @@ class BaseExperiment:
             label_ranges=configs.DataConfig.DATASET_CLASSES,
         )
         return [task]
-        # tasks = []
-        # for dataset_name, dataset_classes in zip(configs.DataConfig.DATASET_NAMES, configs.DataConfig.DATASET_NAMES):
-        #     tasks.append(
-        #         Task(
-        #             dataset_name=dataset_name,
-        #             label_ranges=dataset_classes,
-        #         )
-        #     )
-        # return tasks
 
     def setup_datasets(self, tasks: List[Task]):
         # TODO: DatasetFactory
@@ -149,11 +138,19 @@ class BaseExperiment:
         checkpoint_path: Path,
         load_backbone: bool = False,
         load_optimizer: bool = False,
-        load_scheduler=False,
-        load_heads=False,
-        load_epoch=False,
+        load_scheduler: bool = False,
+        load_heads: bool = False,
+        load_epoch: bool = False,
     ) -> None:
         checkpoint = torch.load(checkpoint_path)
+
+        heads_state_dict = checkpoint["heads_state_dict"]
+        new_heads_state_dict = {}
+        for key, value in heads_state_dict.items():
+            new_key = key.replace("4", "8")
+            new_heads_state_dict[new_key] = value
+        print(new_heads_state_dict.keys())
+
         if not any([load_backbone, load_optimizer, load_scheduler, load_heads]):
             raise ValueError(
                 "At least one of load_backbone, load_optimizer, load_scheduler, load_heads must be True, otherwise you would not load anything and calling load is useless."
@@ -162,7 +159,7 @@ class BaseExperiment:
         if load_backbone:
             self.legacy_model_load(checkpoint["backbone_state_dict"])
         if load_heads:
-            self.heads.load_state_dict(checkpoint["heads_state_dict"])
+            self.heads.load_state_dict(new_heads_state_dict)
         if load_optimizer:
             self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         if load_scheduler:
@@ -229,9 +226,6 @@ class BaseExperiment:
         y_true: Union[torch.Tensor, npt.NDArray],
         y_pred: Union[torch.Tensor, npt.NDArray],
     ) -> dict:
-        if "metrics" not in self.__dict__:
-            self.metrics = Metrics()
-        # if torch tensor, convert to numpy
         if isinstance(y_true, torch.Tensor):
             y_true = y_true.cpu().detach().numpy()
         if isinstance(y_pred, torch.Tensor):
@@ -256,19 +250,20 @@ class BaseExperiment:
 
         metrics = defaultdict(list)
         data = self.val_dataset.dataset  # TODO: dataloader
-        total_length = len(data)
 
         for i, subject in enumerate(tqdm(data, desc="Val")):
             pred = self.predict(subject)
 
             try:
                 label = subject["labels"][tio.DATA].squeeze()
+                label[label > 42] = 0
                 metric_values = self.metrics.compute(pred, label)
             except Exception as e:
                 print(f"Error computing metrics in subject {i}: {e}")
                 continue
             for key, value in metric_values.items():
                 metrics[key].append(value)
+            print(f"Subject {i} metrics: {metric_values}")
 
         dict_to_log = {
             # "Val/Loss": sum(losses) / len(losses),
@@ -276,6 +271,7 @@ class BaseExperiment:
         for key, value in metrics.items():
             dict_to_log[f"Val/{key}"] = sum(value) / len(value)
         wandb.log(dict_to_log)
+        print(dict_to_log)
 
     @staticmethod
     def functional_predict(
@@ -299,8 +295,6 @@ class BaseExperiment:
             patch_sampler, overlap_mode="hann"
         )
 
-        spatial_shape = subject["images"][tio.DATA].shape[-3:]
-
         for patch in patch_sampler:
             # unsqueeze to add batch dimension
             image_patch = patch["images"][tio.DATA].unsqueeze(0).to("cuda")
@@ -317,11 +311,12 @@ class BaseExperiment:
         pred = pred_aggregator.get_output_tensor()
         values, indices = pred.max(dim=0)
         indices += 1
-        indices[values < 0] = 0  # TODO: check that this should not be 0.5
+        indices[values < 0] = 0
         return indices
 
     def log_train_status(self, loss: Union[List[float], float], epoch):
         if isinstance(loss, list):
+            loss = [-1] if len(loss) == 0 else loss
             average_loss = sum(loss) / len(loss)
             max_loss = max(loss)
             min_loss = min(loss)
@@ -339,7 +334,7 @@ class BaseExperiment:
             }
         )
 
-    def get_image_label_idx(self, sample, device: Optional[str] = None):
+    def get_image_label_idx(self, sample):
         image = sample["images"][tio.DATA]
         label = sample["labels"][tio.DATA]
         dataset_indices = sample["dataset_idx"]
