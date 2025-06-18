@@ -176,8 +176,8 @@ class PatchDataset:
         )
         patches_queue = tio.Queue(
             subjects_dataset=self.dataset,
-            max_length=30,
-            samples_per_volume=10,
+            max_length=300,
+            samples_per_volume=100,
             sampler=patch_sampler,
             num_workers=num_workers,
         )
