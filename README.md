@@ -14,14 +14,14 @@ The related checkpoints and task vectors used in the paper will be available fro
 
 ### 1. Clone the Repository  
 ```bash
-git clone <REAL_GITHUB_URL_HERE>
+git clone git@github.com:LucaLumetti/UNetTransplant.git
 cd UNetTransplant
 ```
 
 ### 2. Setup Environment
 ```bash
 python -m venv env
-source env/bin/activate  # On Windows: env\Scripts\activate
+source env/bin/activate
 pip install -r requirements.txt
 ```
 
