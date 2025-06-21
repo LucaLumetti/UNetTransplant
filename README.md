@@ -64,36 +64,16 @@ The configuration file defines:
 - **Loss Function** (`LossConfig`): Defines the loss function used.  
 - **Training** (`TrainConfig`): Number of epochs, checkpoint saving, and resume options.  
 
-#### Example Configuration
-```yaml
-DataConfig:
-  NAME: "ComposedDataset"
-  DATASET_NAMES: ["AMOS"]
-  BATCH_SIZE: 4
-  DATA_PREPROCESSED_PATH: "/path/to/preprocessed_data"
-  DATA_RAW_PATH: "/path/to/raw_data"
-
-BackboneConfig:
-  NAME: "ResidualUNet3D"
-
-OptimizerConfig:
-  NAME: "AdamW"
-  LR: 0.001
-  WEIGHT_DECAY: 0.1
-
-TrainConfig:
-  EPOCHS: 101
-  SAVE_EVERY: 10
-```
+Check [the provided configs](https://github.com/LucaLumetti/UNetTransplant/tree/main/configs/miccai2025) for examples.
 
 #### Example Commands
 1. **Pretraining a model**:
    ```bash
-   python main.py --experiment PretrainExperiment --config configs/pretrain.yaml
+   python main.py --experiment PretrainExperiment --config configs/miccai2025/pretrain_stable.yaml
    ```
 2. **Training a task vector from a checkpoint**:
    ```bash
-   python main.py --experiment TaskVectorTrainExperiment --config configs/task_vector.yaml --override BackboneConfig.PRETRAIN_CHECKPOINTS="path/to/checkpoint.pth"
+   python main.py --experiment TaskVectorTrainExperiment --config configs/miccai2025/finetune.yaml --override BackboneConfig.PRETRAIN_CHECKPOINTS="/path/to/checkpoint.pth"
    ```
 
 For further details, refer to the config files used in our experiments under the `configs` folder.
