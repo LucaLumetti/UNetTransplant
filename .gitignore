@@ -9,7 +9,6 @@ old/
 *.npy
 slurm_logs/
 slurm_logs_pretrain/
-*.toml
 *.png
 *.jpg
 *.pdf

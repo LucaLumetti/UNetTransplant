@@ -1,18 +1,18 @@
 [DataConfig]
 NAME = "ComposedDataset"
-DATASET_NAMES = ["ToothFairy2"]
+DATASET_NAMES = ["ToothFairy2"] # ['BTCV_Abdomen']
 DATASET_CLASSES = []
 BATCH_SIZE = 8
 NUM_WORKERS = 8
 DATA_PREPROCESSED_PATH = ""
-DATA_RAW_PATH = "/leonardo_scratch/large/userexternal/gcapitan/data"
-OUTPUT_DIR = "/leonardo_scratch/large/userexternal/llumetti/output_UNetMerging/"
+DATA_RAW_PATH = "/path/to/your/data"  # Update this path to your data location
+OUTPUT_DIR = "/path/to/your/output/"  # Update this path to your output location
 
 [BackboneConfig]
 NAME = "ResidualUNet3D"
 IN_CHANNELS = 1
-PRETRAIN_CHECKPOINTS = ""
-N_EPOCHS_FREEZE = -1
+PRETRAIN_CHECKPOINTS = "/path/to/your/pretrained/checkpoint.pth"  # Update this path to your pretrained checkpoint
+N_EPOCHS_FREEZE = 2
 
 [HeadsConfig]
 NAME = "TaskHeads"
