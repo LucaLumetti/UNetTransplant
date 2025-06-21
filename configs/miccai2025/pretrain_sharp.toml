@@ -1,0 +1,35 @@
+[DataConfig]
+NAME = "ComposedDataset"
+DATASET_NAMES = ["ZhimingCui"] # ['AMOS']
+DATASET_CLASSES = ['all']
+BATCH_SIZE = 8
+NUM_WORKERS = 8
+DATA_PREPROCESSED_PATH = ""
+DATA_RAW_PATH = "/path/to/your/data"  # Update this path to your data location
+OUTPUT_DIR = "/path/to/your/output/"  # Update this path to your output location
+
+[BackboneConfig]
+NAME = "ResidualUNet3D"
+COMPILE = false
+IN_CHANNELS = 1
+N_EPOCHS_FREEZE = 0
+DROPOUT_PROB = 0.0
+F_MAPS = 64
+
+[HeadsConfig]
+NAME = "TaskHeads"
+COMPILE = false
+IN_CHANNELS = 96
+
+[OptimizerConfig]
+NAME = "AdamW"
+BACKBONE_LR = 0.0001
+HEAD_LR = 0.0001
+WEIGHT_DECAY = 0.1
+
+[LossConfig]
+NAME = "DiceBCELoss"
+
+[TrainConfig]
+EPOCHS = 101
+SAVE_EVERY = 25
