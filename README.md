@@ -56,7 +56,7 @@ python main.py --experiment <EXPERIMENT_TYPE> --config <CONFIG_PATH> [--expname 
   python main.py --experiment PretrainExperiment --config configs/default.yaml --override DataConfig.BATCH_SIZE=4 OptimizerConfig.LR=0.01
   ```
 
-#### Configuration File (`config.yaml`)
+#### Configuration File
 The configuration file defines:
 - **Dataset** (`DataConfig`): Path, batch size, patch size, and datasets used.  
 - **Model** (`BackboneConfig` & `HeadsConfig`): Architecture, checkpoints, and initialization.  
@@ -78,3 +78,13 @@ Check [the provided configs](https://github.com/LucaLumetti/UNetTransplant/tree/
 
 For further details, refer to the config files used in our experiments under the `configs` folder.
 
+### 5. Cite
+If you used our work, please cite it:
+```
+@incollection{lumetti2025u,
+  title={U-Net Transplant: The Role of Pre-training for Model Merging in 3D Medical Segmentation},
+  author={Lumetti, Luca and Capitani, Giacomo and Ficarra, Elisa and Grana, Costantino and Calderara, Simone and Porrello, Angelo and Bolelli, Federico and others},
+  booktitle={Medical Image Computing and Computer Assisted Intervention--MICCAI 2025},
+  year={2025}
+}
+```
