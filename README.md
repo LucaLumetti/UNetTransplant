@@ -1,5 +1,5 @@
 # U-Net Transplant: Model Merging for 3D Medical Segmentation  
-![alt text](./assets/thumbnail.png)
+![alt text](https://raw.githubusercontent.com/LucaLumetti/UNetTransplant/refs/heads/main/assets/thumbnail.png)
 
 This repository contains the implementation of **U-Net Transplant**, a framework for efficient model merging in 3D medical image segmentation. Model merging enables the combination of specialized segmentation models without requiring full retraining, offering a flexible and privacy-conscious solution for updating AI models in clinical applications.  
 
@@ -25,13 +25,37 @@ source env/bin/activate
 pip install -r requirements.txt
 ```
 
-### 3. Download and Prepare Datasets  
+### 3. Downloads
 Ensure the datasets are downloaded and organized following the nnUNet dataset format.
 
 - **BTCV Abdomen**: [Download Here](https://www.synapse.org/Synapse:syn3193805/wiki/217753)  
 - **ToothFairy2**: [Download Here](https://ditto.ing.unimore.it/toothfairy2/)  
 - **AMOS**: [Download Here](https://zenodo.org/records/7262581)  
 - **ZhimingCui**: Available upon request from the authors ([Paper](https://www.nature.com/articles/s41467-022-29637-2))
+
+You can also download pretrained checkpoints and task vectors:
+```bash
+#!/bin/bash
+
+for url in \
+    https://huggingface.co/Lumett/UNetTransplant/resolve/main/Abdomen/{
+        Pretrain_AMOS.pth,
+        TaskVector_Kidney_Abdomen.pth,
+        TaskVector_Liver_Abdomen.pth,
+        TaskVector_Spleen_Abdomen.pth,
+        TaskVector_Stomach_Abdomen.pth
+    } \
+    https://huggingface.co/Lumett/UNetTransplant/resolve/main/ToothFairy/{
+        Pretrain_Cui.pth,
+        TaskVector_Canals_ToothFairy2.pth
+        TaskVector_Mandible_ToothFairy2.pth
+        TaskVector_Teeth_ToothFairy2.pth
+        TaskVector_Pharynx_ToothFairy2.pth
+    }; do
+    wget "$url"
+done
+
+```
 
 ### 4. Running the U-Net Transplant Framework
 
