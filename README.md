@@ -5,6 +5,11 @@ This repository contains the implementation of **U-Net Transplant**, a framework
 
 Our approach leverages **task vectors** and encourages **wide minima** during pre-training to enhance the effectiveness of model merging. We evaluate this method using the **ToothFairy2** and **BTCV Abdomen** datasets with a standard **3D U-Net** architecture, demonstrating its ability to integrate multiple specialized segmentation tasks into a single model.  
 
+**Authors**  
+<ins>Luca Lumetti</ins>\*, <ins>Giacomo Capitani</ins>\*, Elisa Ficarra, Costantino Grana, Simone Calderara, Angelo Porrello†, Federico Bolelli†  
+\* Equal contributions  
+† Equal supervision
+
 
 # Pretrain and Task Vector Checkpoints
 The related checkpoints and task vectors used in the paper will be available from the 23rd June 2025.
