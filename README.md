@@ -42,24 +42,34 @@ You can also download pretrained checkpoints and task vectors:
 ```bash
 #!/bin/bash
 
-for url in \
-    https://huggingface.co/Lumett/UNetTransplant/resolve/main/Abdomen/{
-        Pretrain_AMOS.pth,
-        TaskVector_Kidney_Abdomen.pth,
-        TaskVector_Liver_Abdomen.pth,
-        TaskVector_Spleen_Abdomen.pth,
-        TaskVector_Stomach_Abdomen.pth
-    } \
-    https://huggingface.co/Lumett/UNetTransplant/resolve/main/ToothFairy/{
-        Pretrain_Cui.pth,
-        TaskVector_Canals_ToothFairy2.pth
-        TaskVector_Mandible_ToothFairy2.pth
-        TaskVector_Teeth_ToothFairy2.pth
-        TaskVector_Pharynx_ToothFairy2.pth
-    }; do
-    wget "$url"
+BASE_ABDOMEN="https://huggingface.co/Lumett/UNetTransplant/resolve/main/Abdomen"
+BASE_TOOTHFAIRY="https://huggingface.co/Lumett/UNetTransplant/resolve/main/ToothFairy"
+
+abdomen_files=(
+    Pretrain_AMOS.pth
+    TaskVector_Kidney_Abdomen.pth
+    TaskVector_Liver_Abdomen.pth
+    TaskVector_Spleen_Abdomen.pth
+    TaskVector_Stomach_Abdomen.pth
+)
+
+toothfairy_files=(
+    Pretrain_Cui.pth
+    TaskVector_Canals_ToothFairy2.pth
+    TaskVector_Mandible_ToothFairy2.pth
+    TaskVector_Teeth_ToothFairy2.pth
+    TaskVector_Pharynx_ToothFairy2.pth
+)
+
+echo "🩻 Downloading Abdomen files..."
+for file in "${abdomen_files[@]}"; do
+    wget -c "${BASE_ABDOMEN}/${file}"
 done
 
+echo "🦷 Downloading ToothFairy files..."
+for file in "${toothfairy_files[@]}"; do
+    wget -c "${BASE_TOOTHFAIRY}/${file}"
+done
 ```
 
 ### 4. Running the U-Net Transplant Framework
