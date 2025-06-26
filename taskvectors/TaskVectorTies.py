@@ -36,7 +36,9 @@ def ties_merge(params: List[torch.nn.ParameterList]):
         combined = torch.stack(ps_flat, dim=0)
 
         # filtering out the smallest values
-        k = int(0.2 * combined.size(1))
+        # best value for BTCV: 0.99
+        # best value for ToothFairy2: 0.9
+        k = int(0.9 * combined.size(1))
         threshold = combined.abs().kthvalue(k, dim=1, keepdim=True).values
         mask = combined.abs() < threshold
         combined[mask] = 0
